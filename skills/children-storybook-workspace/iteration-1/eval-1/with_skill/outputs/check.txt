@@ -1,0 +1,1 @@
+{"valid_plan": true, "ready_to_build": false, "missing_art": ["art/cover.png", "art/page-01.png", "art/page-02.png", "art/page-03.png", "art/page-04.png", "art/page-05.png", "art/page-06.png", "art/page-07.png", "art/page-08.png", "art/back.png"], "interior_pages": 8}

@@ -1,0 +1,136 @@
+{
+  "id": "goldilocks-and-the-three-bears-v1",
+  "title": "Goldilocks and the Three Bears",
+  "age_range": "4-7",
+  "cover": {
+    "text": "Goldilocks and the Three Bears",
+    "art": "art/cover.jpg"
+  },
+  "back_cover": {
+    "text": "The End",
+    "art": "art/back.jpg"
+  },
+  "spreads": [
+    {
+      "theme": "A Door in the Wood",
+      "left": {
+        "text": "One sunny morning, Goldilocks picked flowers at the edge of the wood. A blue butterfly danced past, and she ran after it, further and further from home.",
+        "art": "art/page-01.jpg"
+      },
+      "right": {
+        "text": "The butterfly flew away. Goldilocks looked up and saw a little cottage with a green door. She knocked. Nobody answered, so she pushed the door open.",
+        "art": "art/page-02.jpg"
+      }
+    },
+    {
+      "theme": "Three Bowls of Porridge",
+      "left": {
+        "text": "Inside, three bowls of warm porridge sat on the table. Goldilocks was very hungry. She tasted the biggest bowl. “Ouch! Too hot!”",
+        "art": "art/page-03.jpg"
+      },
+      "right": {
+        "text": "She tasted the middle bowl. “Too cold!” Then she tasted the smallest bowl. “Just right!” And she ate it all up, every single spoonful.",
+        "art": "art/page-04.jpg"
+      }
+    },
+    {
+      "theme": "Three Chairs",
+      "left": {
+        "text": "Next to the table stood three chairs. Goldilocks climbed onto the biggest chair, but it was far too tall. The middle chair was too wide and wobbly.",
+        "art": "art/page-05.jpg"
+      },
+      "right": {
+        "text": "The smallest chair was just right. She sat down and smiled — then crack! The little chair broke, and Goldilocks tumbled onto the floor.",
+        "art": "art/page-06.jpg"
+      }
+    },
+    {
+      "theme": "Three Beds",
+      "left": {
+        "text": "Upstairs she found three beds. The biggest bed was too hard. The middle bed was too soft. The smallest bed was just right, warm and cosy.",
+        "art": "art/page-07.jpg"
+      },
+      "right": {
+        "text": "Goldilocks pulled up the blanket, closed her eyes, and fell fast asleep. Soon the little bed was full of quiet, sleepy breathing.",
+        "art": "art/page-08.jpg"
+      }
+    },
+    {
+      "theme": "The Bears Come Home",
+      "left": {
+        "text": "The cottage belonged to three bears. They had gone for a walk to let their porridge cool. When they came home, they stood at the table and stared.",
+        "art": "art/page-09.jpg"
+      },
+      "right": {
+        "text": "“Someone has been eating my porridge!” said Papa Bear, in his big deep voice. “Someone has been eating my porridge too,” said Mama Bear.",
+        "art": "art/page-10.jpg"
+      }
+    },
+    {
+      "theme": "Baby Bear's Chair",
+      "left": {
+        "text": "Baby Bear looked at his little bowl. “Someone has eaten my porridge all up!” he said in his small voice. Then he saw the chairs.",
+        "art": "art/page-11.jpg"
+      },
+      "right": {
+        "text": "“Someone has been sitting in my chair,” said Papa Bear. “And someone has broken my chair!” said Baby Bear, and one big tear rolled down.",
+        "art": "art/page-12.jpg"
+      }
+    },
+    {
+      "theme": "Up the Stairs",
+      "left": {
+        "text": "The three bears climbed the stairs, soft and slow. Papa Bear looked at the biggest bed. “Someone has been sleeping in my bed!” he growled.",
+        "art": "art/page-13.jpg"
+      },
+      "right": {
+        "text": "Mama Bear looked at the middle bed. Baby Bear looked at his little bed — and there was Goldilocks, fast asleep under his blanket.",
+        "art": "art/page-14.jpg"
+      }
+    },
+    {
+      "theme": "Don't Be Frightened",
+      "left": {
+        "text": "Goldilocks woke up. She saw three bears looking at her, and she was very frightened. She sat up small and still, with her heart going thump, thump, thump.",
+        "art": "art/page-15.jpg"
+      },
+      "right": {
+        "text": "“Don't be frightened, little one,” said Mama Bear softly. “We will not hurt you.” Papa Bear nodded. Baby Bear peeped out from behind his mother.",
+        "art": "art/page-16.jpg"
+      }
+    },
+    {
+      "theme": "I Am Sorry",
+      "left": {
+        "text": "Goldilocks took a deep breath. “I am sorry,” she said. “I ate your porridge and I broke your little chair. I should have knocked first.”",
+        "art": "art/page-17.jpg"
+      },
+      "right": {
+        "text": "“I liked that chair,” said Baby Bear sadly. “Then let's mend it together,” said Goldilocks. “I can hold the pieces while you tap the nails.”",
+        "art": "art/page-18.jpg"
+      }
+    },
+    {
+      "theme": "Mending Together",
+      "left": {
+        "text": "Papa Bear brought wood and a pot of glue. Goldilocks held the legs, Baby Bear tapped, and Mama Bear tied the seat with string. Tap, tap, click!",
+        "art": "art/page-19.jpg"
+      },
+      "right": {
+        "text": "The little chair stood up again, strong as new. Mama Bear cooked more porridge, and everyone sat down to share it — three bears and one new friend.",
+        "art": "art/page-20.jpg"
+      }
+    },
+    {
+      "theme": "Home Again",
+      "left": {
+        "text": "When the sun began to set, Goldilocks walked home through the wood. “Next time I will knock and wait,” she said. The three bears waved from the door.",
+        "art": "art/page-21.jpg"
+      },
+      "right": {
+        "text": "Mama was waiting with a warm hug. “Did you have an adventure?” she asked. “Yes,” said Goldilocks. “And I made three new friends.”",
+        "art": "art/page-22.jpg"
+      }
+    }
+  ]
+}

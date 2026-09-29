@@ -1,0 +1,206 @@
+{
+  "metadata": {
+    "skill_name": "children-storybook",
+    "skill_path": "<path/to/skill>",
+    "executor_model": "<model-name>",
+    "analyzer_model": "<model-name>",
+    "timestamp": "2026-09-15T03:03:44Z",
+    "evals_run": [
+      1,
+      2
+    ],
+    "runs_per_configuration": 3
+  },
+  "runs": [
+    {
+      "eval_id": 1,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Requested spread count and complete English page text are present.",
+          "passed": true,
+          "evidence": "manifest.json: 4 spreads, 8 populated English interior pages; per-page word counts [18, 18, 19, 19, 18, 19, 20, 19]."
+        },
+        {
+          "text": "Stable character definitions and page-specific image prompts are present.",
+          "passed": true,
+          "evidence": "characters.md specifies fixed colors, clothing, anatomy, scale and setting; prompts.md supplies per-page actions and no-text constraints. Independently inspected the character bible, storyboard and all prompt sections."
+        },
+        {
+          "text": "The installation plan correctly maps adjacent spreads onto front/back physical sheets.",
+          "passed": true,
+          "evidence": "integration.md lists sheet 0 = cover/page 1 through sheet 4 = page 8/back cover; 5 sheets and 6 navigation states."
+        },
+        {
+          "text": "The plan explains how English becomes visible despite the image-only renderer.",
+          "passed": true,
+          "evidence": "integration.md identifies image-only makeTexture behavior and explicitly composes exact English separately into final page images; helper SVG pipeline."
+        },
+        {
+          "text": "Missing artwork is explicit; no draft is represented as a completed illustrated book.",
+          "passed": true,
+          "evidence": "prompts.md and integration.md explicitly state all images are missing and installation has not occurred; manifests remain draft/planned asset paths."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Requested spread count and complete English page text are present.",
+          "passed": true,
+          "evidence": "manifest.json: 3 spreads, 6 populated English interior pages; per-page word counts [20, 20, 19, 18, 19, 18]."
+        },
+        {
+          "text": "Stable character definitions and page-specific image prompts are present.",
+          "passed": true,
+          "evidence": "characters.md specifies fixed colors, clothing, anatomy, scale and setting; prompts.md supplies per-page actions and no-text constraints. Independently inspected the character bible, storyboard and all prompt sections."
+        },
+        {
+          "text": "The installation plan correctly maps adjacent spreads onto front/back physical sheets.",
+          "passed": true,
+          "evidence": "integration.md lists sheet 0 = cover/page 1 through sheet 3 = page 6/back cover; 4 sheets and 5 navigation states."
+        },
+        {
+          "text": "The plan explains how English becomes visible despite the image-only renderer.",
+          "passed": true,
+          "evidence": "integration.md identifies image-only makeTexture behavior and explicitly composes exact English separately into final page images; helper SVG pipeline."
+        },
+        {
+          "text": "Missing artwork is explicit; no draft is represented as a completed illustrated book.",
+          "passed": true,
+          "evidence": "prompts.md and integration.md explicitly state all images are missing and installation has not occurred; manifests remain draft/planned asset paths."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Requested spread count and complete English page text are present.",
+          "passed": true,
+          "evidence": "manifest.json: 4 spreads, 8 populated English interior pages; per-page word counts [12, 17, 17, 18, 14, 13, 17, 19]."
+        },
+        {
+          "text": "Stable character definitions and page-specific image prompts are present.",
+          "passed": true,
+          "evidence": "characters.md specifies fixed colors, clothing, anatomy, scale and setting; prompts.md supplies per-page actions and no-text constraints. Independently inspected the character bible, storyboard and all prompt sections."
+        },
+        {
+          "text": "The installation plan correctly maps adjacent spreads onto front/back physical sheets.",
+          "passed": true,
+          "evidence": "integration.md lists sheet 0 = cover/page 1 through sheet 4 = page 8/back cover; 5 sheets and 6 navigation states."
+        },
+        {
+          "text": "The plan explains how English becomes visible despite the image-only renderer.",
+          "passed": true,
+          "evidence": "integration.md identifies image-only makeTexture behavior and proposes separately typeset flattened PNG pages before installation."
+        },
+        {
+          "text": "Missing artwork is explicit; no draft is represented as a completed illustrated book.",
+          "passed": true,
+          "evidence": "prompts.md and integration.md explicitly state all images are missing and installation has not occurred; manifests remain draft/planned asset paths."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Requested spread count and complete English page text are present.",
+          "passed": true,
+          "evidence": "manifest.json: 3 spreads, 6 populated English interior pages; per-page word counts [20, 17, 18, 17, 20, 19]."
+        },
+        {
+          "text": "Stable character definitions and page-specific image prompts are present.",
+          "passed": true,
+          "evidence": "characters.md specifies fixed colors, clothing, anatomy, scale and setting; prompts.md supplies per-page actions and no-text constraints. Independently inspected the character bible, storyboard and all prompt sections."
+        },
+        {
+          "text": "The installation plan correctly maps adjacent spreads onto front/back physical sheets.",
+          "passed": true,
+          "evidence": "integration.md lists sheet 0 = cover/page 1 through sheet 3 = page 6/back cover; 4 sheets and 5 navigation states."
+        },
+        {
+          "text": "The plan explains how English becomes visible despite the image-only renderer.",
+          "passed": true,
+          "evidence": "integration.md identifies image-only makeTexture behavior and proposes separately typeset flattened PNG pages before installation."
+        },
+        {
+          "text": "Missing artwork is explicit; no draft is represented as a completed illustrated book.",
+          "passed": true,
+          "evidence": "prompts.md and integration.md explicitly state all images are missing and installation has not occurred; manifests remain draft/planned asset paths."
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.00"
+    }
+  },
+  "notes": [
+    "Planning-only evaluation: no generated artwork or installed sample book.",
+    "Both skill and baseline passed all five planning checks; no demonstrated quality improvement.",
+    "Timing/token metrics unavailable and omitted rather than presented as zero."
+  ]
+}

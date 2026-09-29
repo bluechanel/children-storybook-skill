@@ -1,0 +1,282 @@
+{
+  "version": 1,
+  "draft_only": true,
+  "title": "Milo and the Little Light",
+  "language": "en",
+  "target_age": "4–7",
+  "thematic_spreads": 4,
+  "interior_pages": 8,
+  "total_faces": 10,
+  "sheet_count": 5,
+  "artwork_generated": false,
+  "assets": [
+    {
+      "id": "front-cover",
+      "kind": "front_cover",
+      "status": "missing",
+      "illustration_path": "public/images/milo/front-cover-art.png",
+      "composed_path": "public/images/milo/front-cover.png",
+      "planned_url": "/images/milo/front-cover.png",
+      "image": null,
+      "text": "Milo and the Little Light",
+      "text_lines": [
+        "Milo and",
+        "the Little Light"
+      ],
+      "scene": "Milo sits beside a garden leaf while the tiny firefly floats near his nose; dusk garden and distant pond, friendly curiosity. Leave upper third open for title.",
+      "width": 1024,
+      "height": 1400
+    },
+    {
+      "id": "page-01",
+      "kind": "interior",
+      "status": "missing",
+      "illustration_path": "public/images/milo/page-01-art.png",
+      "composed_path": "public/images/milo/page-01.png",
+      "planned_url": "/images/milo/page-01.png",
+      "image": null,
+      "text": "Milo hopped into the garden.\nA tiny light blinked under a leaf.",
+      "text_lines": [
+        "Milo hopped into the garden.",
+        "A tiny light blinked under a leaf."
+      ],
+      "scene": "Wide view of a peaceful garden at dusk; Milo at left foreground bends toward a single glowing dot beneath a low leaf.",
+      "width": 1024,
+      "height": 1400
+    },
+    {
+      "id": "page-02",
+      "kind": "interior",
+      "status": "missing",
+      "illustration_path": "public/images/milo/page-02-art.png",
+      "composed_path": "public/images/milo/page-02.png",
+      "planned_url": "/images/milo/page-02.png",
+      "image": null,
+      "text": "“Hello,” said Milo. “Are you lost?”\n“Yes,” said the little firefly.\n“My home is by the pond.”",
+      "text_lines": [
+        "“Hello,” said Milo. “Are you lost?”",
+        "“Yes,” said the little firefly.",
+        "“My home is by the pond.”"
+      ],
+      "scene": "Closer view of Milo sitting at the leaf; firefly hovering at his eye level; worried expression becoming curious.",
+      "width": 1024,
+      "height": 1400
+    },
+    {
+      "id": "page-03",
+      "kind": "interior",
+      "status": "missing",
+      "illustration_path": "public/images/milo/page-03-art.png",
+      "composed_path": "public/images/milo/page-03.png",
+      "planned_url": "/images/milo/page-03.png",
+      "image": null,
+      "text": "“We can look together,” said Milo.\nThey followed the garden path.\nBlink, blink went the little light.",
+      "text_lines": [
+        "“We can look together,” said Milo.",
+        "They followed the garden path.",
+        "Blink, blink went the little light."
+      ],
+      "scene": "Milo walking gently along the curved garden path, firefly hovering just ahead; flowers and a recognizable fork ahead.",
+      "width": 1024,
+      "height": 1400
+    },
+    {
+      "id": "page-04",
+      "kind": "interior",
+      "status": "missing",
+      "illustration_path": "public/images/milo/page-04-art.png",
+      "composed_path": "public/images/milo/page-04.png",
+      "planned_url": "/images/milo/page-04.png",
+      "image": null,
+      "text": "One path led to a tall gate.\nThe other led to a soft splash.\n“Water!” said the firefly.",
+      "text_lines": [
+        "One path led to a tall gate.",
+        "The other led to a soft splash.",
+        "“Water!” said the firefly."
+      ],
+      "scene": "Both friends paused safely on path at fork, tall closed gate in distance left, subtle pond reflection beyond reeds right; no signage.",
+      "width": 1024,
+      "height": 1400
+    },
+    {
+      "id": "page-05",
+      "kind": "interior",
+      "status": "missing",
+      "illustration_path": "public/images/milo/page-05-art.png",
+      "composed_path": "public/images/milo/page-05.png",
+      "planned_url": "/images/milo/page-05.png",
+      "image": null,
+      "text": "They found the pond.\nBut which reeds were home?\nThe firefly looked all around.",
+      "text_lines": [
+        "They found the pond.",
+        "But which reeds were home?",
+        "The firefly looked all around."
+      ],
+      "scene": "Wide pond edge with dry safe path and several reed patches; both friends remain on land, searching.",
+      "width": 1024,
+      "height": 1400
+    },
+    {
+      "id": "page-06",
+      "kind": "interior",
+      "status": "missing",
+      "illustration_path": "public/images/milo/page-06-art.png",
+      "composed_path": "public/images/milo/page-06.png",
+      "planned_url": "/images/milo/page-06.png",
+      "image": null,
+      "text": "“There!” said the firefly.\nThree little lights blinked in the reeds.\n“My family!”",
+      "text_lines": [
+        "“There!” said the firefly.",
+        "Three little lights blinked in the reeds.",
+        "“My family!”"
+      ],
+      "scene": "Three family fireflies blink above a distinctive arching reed clump; main firefly near Milo turns joyfully toward them.",
+      "width": 1024,
+      "height": 1400
+    },
+    {
+      "id": "page-07",
+      "kind": "interior",
+      "status": "missing",
+      "illustration_path": "public/images/milo/page-07-art.png",
+      "composed_path": "public/images/milo/page-07.png",
+      "planned_url": "/images/milo/page-07.png",
+      "image": null,
+      "text": "“Thank you, Milo!”\nThe firefly flew to his family.\nThen Milo looked back.\nHis path was dark.",
+      "text_lines": [
+        "“Thank you, Milo!”",
+        "The firefly flew to his family.",
+        "Then Milo looked back.",
+        "His path was dark."
+      ],
+      "scene": "Family reunion above reeds at right, Milo on the same dry path at left looking toward garden path in deep blue dusk; peaceful, never threatening.",
+      "width": 1024,
+      "height": 1400
+    },
+    {
+      "id": "page-08",
+      "kind": "interior",
+      "status": "missing",
+      "illustration_path": "public/images/milo/page-08-art.png",
+      "composed_path": "public/images/milo/page-08.png",
+      "planned_url": "/images/milo/page-08.png",
+      "image": null,
+      "text": "“I’ll light your way,” said his friend.\nBlink, blink, all the way to Milo’s door.\n“Good night, little light.”",
+      "text_lines": [
+        "“I’ll light your way,” said his friend.",
+        "Blink, blink, all the way to Milo’s door.",
+        "“Good night, little light.”"
+      ],
+      "scene": "Firefly escorts Milo along path to warmly lit round rabbit home beneath garden tree; final pose at doorway, both smiling.",
+      "width": 1024,
+      "height": 1400
+    },
+    {
+      "id": "back-cover",
+      "kind": "back_cover",
+      "status": "missing",
+      "illustration_path": "public/images/milo/back-cover-art.png",
+      "composed_path": "public/images/milo/back-cover.png",
+      "planned_url": "/images/milo/back-cover.png",
+      "image": null,
+      "text": "A little light.\nA good friend.\nA way home.",
+      "text_lines": [
+        "A little light.",
+        "A good friend.",
+        "A way home."
+      ],
+      "scene": "Warm rabbit doorway beneath tree at dusk, a tiny firefly glow on garden path; tranquil closing vignette with open upper third.",
+      "width": 1024,
+      "height": 1400
+    }
+  ],
+  "face_order": [
+    "front-cover",
+    "page-01",
+    "page-02",
+    "page-03",
+    "page-04",
+    "page-05",
+    "page-06",
+    "page-07",
+    "page-08",
+    "back-cover"
+  ],
+  "bookContent": {
+    "title": "Milo and the Little Light",
+    "subtitle": "A LITTLE STORY",
+    "sheets": [
+      {
+        "front": {
+          "cover": true,
+          "title": "Milo and the Little Light",
+          "subtitle": "",
+          "image": null
+        },
+        "back": {
+          "number": "01",
+          "label": "A Little Light",
+          "image": null
+        }
+      },
+      {
+        "front": {
+          "number": "02",
+          "label": "A Little Light",
+          "image": null
+        },
+        "back": {
+          "number": "03",
+          "label": "Looking Together",
+          "image": null
+        }
+      },
+      {
+        "front": {
+          "number": "04",
+          "label": "Looking Together",
+          "image": null
+        },
+        "back": {
+          "number": "05",
+          "label": "A Familiar Place",
+          "image": null
+        }
+      },
+      {
+        "front": {
+          "number": "06",
+          "label": "A Familiar Place",
+          "image": null
+        },
+        "back": {
+          "number": "07",
+          "label": "The Way Home",
+          "image": null
+        }
+      },
+      {
+        "front": {
+          "number": "08",
+          "label": "The Way Home",
+          "image": null
+        },
+        "back": {
+          "cover": true,
+          "title": "The End",
+          "subtitle": "",
+          "image": null,
+          "end": true
+        }
+      }
+    ],
+    "chapters": [
+      "Milo and the Little Light",
+      "A Little Light",
+      "Looking Together",
+      "A Familiar Place",
+      "The Way Home",
+      "The End"
+    ]
+  }
+}

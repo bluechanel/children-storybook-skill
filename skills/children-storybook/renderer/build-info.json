@@ -1,0 +1,19 @@
+{
+  "builtAt": "2026-09-28T05:56:53.523Z",
+  "entry": "src/book.js",
+  "outputs": [
+    "book.js",
+    "book.css"
+  ],
+  "sources": {
+    "src/book.js": "1590d82b492b5ee026bd1ef8450e54b0ec7ad1bbc3fe66413034b2cd95a9d27d",
+    "src/shell.js": "a775de3da4c6b31b47b53579d4e52dd33b2be9f336cc2cb046f83a55c8dd2f20",
+    "src/narration-player.js": "e68c2c1349498b933de50567e2b13722e093cc7c436fb0f4b0a481fcb7b03ae4",
+    "src/style.css": "731ffc1eb94cd8fc8d382451b5250e76543f06ca4e0356f551bbdb1917fc92ff",
+    "../scripts/media-core.mjs": "1fd3cab24d4ed7ff0fa3a9d30b5131431eaaff5b052a4070be69b07bf9e2023e"
+  },
+  "packages": {
+    "vite": "8.3.0",
+    "three": "0.186.0"
+  }
+}

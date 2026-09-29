@@ -1,0 +1,236 @@
+{
+  "version": 1,
+  "draft_only": true,
+  "title": "Pip, One Little Step",
+  "language": "en",
+  "target_age": "4",
+  "thematic_spreads": 3,
+  "interior_pages": 6,
+  "total_faces": 8,
+  "sheet_count": 4,
+  "artwork_generated": false,
+  "assets": [
+    {
+      "id": "front-cover",
+      "kind": "front_cover",
+      "status": "missing",
+      "illustration_path": "public/images/pip/front-cover-art.png",
+      "composed_path": "public/images/pip/front-cover.png",
+      "planned_url": "/images/pip/front-cover.png",
+      "image": null,
+      "text": "Pip, One Little Step",
+      "text_lines": [
+        "Pip,",
+        "One Little Step"
+      ],
+      "scene": "Pip and Dot sit on dry grass watching one leaf on a pale blue shallow pond; Mama beside them; Pip curious but cautious. Leave upper third open for title.",
+      "width": 1024,
+      "height": 1400
+    },
+    {
+      "id": "page-01",
+      "kind": "interior",
+      "status": "missing",
+      "illustration_path": "public/images/pip/page-01-art.png",
+      "composed_path": "public/images/pip/page-01.png",
+      "planned_url": "/images/pip/page-01.png",
+      "image": null,
+      "text": "Pip sat by the pond.\nThe water went ripple, ripple.\nPip held his paws close.\n“I’m not ready,” he said.",
+      "text_lines": [
+        "Pip sat by the pond.",
+        "The water went ripple, ripple.",
+        "Pip held his paws close.",
+        "“I’m not ready,” he said."
+      ],
+      "scene": "Pip sits on a broad dry grassy bank beside a tiny sheltered shallow inlet; relaxed adult bear nearby, small friend at respectful distance; visible bottom.",
+      "width": 1024,
+      "height": 1400
+    },
+    {
+      "id": "page-02",
+      "kind": "interior",
+      "status": "missing",
+      "illustration_path": "public/images/pip/page-02-art.png",
+      "composed_path": "public/images/pip/page-02.png",
+      "planned_url": "/images/pip/page-02.png",
+      "image": null,
+      "text": "“We can just watch,” said Dot.\nDot sat beside him.\nMama stayed close.\nA leaf bobbed by.",
+      "text_lines": [
+        "“We can just watch,” said Dot.",
+        "Dot sat beside him.",
+        "Mama stayed close.",
+        "A leaf bobbed by."
+      ],
+      "scene": "Pip and Dot sit side by side well back from water watching one floating leaf; Mama within arm’s reach, no urging gestures.",
+      "width": 1024,
+      "height": 1400
+    },
+    {
+      "id": "page-03",
+      "kind": "interior",
+      "status": "missing",
+      "illustration_path": "public/images/pip/page-03-art.png",
+      "composed_path": "public/images/pip/page-03.png",
+      "planned_url": "/images/pip/page-03.png",
+      "image": null,
+      "text": "“I want to try one paw,” said Pip.\nMama held his other paw.\nTap.\nThe water felt cool.",
+      "text_lines": [
+        "“I want to try one paw,” said Pip.",
+        "Mama held his other paw.",
+        "Tap.",
+        "The water felt cool."
+      ],
+      "scene": "Pip seated securely on dry flat bank voluntarily reaches one paw to calm water surface; Mama supports his other paw, Dot watches patiently.",
+      "width": 1024,
+      "height": 1400
+    },
+    {
+      "id": "page-04",
+      "kind": "interior",
+      "status": "missing",
+      "illustration_path": "public/images/pip/page-04-art.png",
+      "composed_path": "public/images/pip/page-04.png",
+      "planned_url": "/images/pip/page-04.png",
+      "image": null,
+      "text": "Pip pulled his paw back.\n“That’s enough for now.”\n“Okay,” said Dot.\nThey watched the little rings.",
+      "text_lines": [
+        "Pip pulled his paw back.",
+        "“That’s enough for now.”",
+        "“Okay,” said Dot.",
+        "They watched the little rings."
+      ],
+      "scene": "Pip rests both paws on his lap on dry bank; tiny ripples spread where he touched water; Dot calmly watches, Mama close.",
+      "width": 1024,
+      "height": 1400
+    },
+    {
+      "id": "page-05",
+      "kind": "interior",
+      "status": "missing",
+      "illustration_path": "public/images/pip/page-05-art.png",
+      "composed_path": "public/images/pip/page-05.png",
+      "planned_url": "/images/pip/page-05.png",
+      "image": null,
+      "text": "After a while, Pip smiled.\n“I want to try my toes.”\nMama held his paw.\nPip chose one small step.",
+      "text_lines": [
+        "After a while, Pip smiled.",
+        "“I want to try my toes.”",
+        "Mama held his paw.",
+        "Pip chose one small step."
+      ],
+      "scene": "Pip chooses a careful step into a broad clear ankle-deep sandy margin with Mama holding paw beside him; no drop-off, no jumping, Dot remains on bank.",
+      "width": 1024,
+      "height": 1400
+    },
+    {
+      "id": "page-06",
+      "kind": "interior",
+      "status": "missing",
+      "illustration_path": "public/images/pip/page-06-art.png",
+      "composed_path": "public/images/pip/page-06.png",
+      "planned_url": "/images/pip/page-06.png",
+      "image": null,
+      "text": "Pip wiggled his toes.\nDot floated a leaf nearby.\n“I like this little bit,” said Pip.\n“Let’s play here.”",
+      "text_lines": [
+        "Pip wiggled his toes.",
+        "Dot floated a leaf nearby.",
+        "“I like this little bit,” said Pip.",
+        "“Let’s play here.”"
+      ],
+      "scene": "Pip stands ankle-deep holding Mama’s paw, content and a little tentative, guiding a floating leaf with free paw; Dot crouches on safe dry bank; no swimming.",
+      "width": 1024,
+      "height": 1400
+    },
+    {
+      "id": "back-cover",
+      "kind": "back_cover",
+      "status": "missing",
+      "illustration_path": "public/images/pip/back-cover-art.png",
+      "composed_path": "public/images/pip/back-cover.png",
+      "planned_url": "/images/pip/back-cover.png",
+      "image": null,
+      "text": "One little step.\nIn my own time.",
+      "text_lines": [
+        "One little step.",
+        "In my own time."
+      ],
+      "scene": "A leaf on small gentle ripples at the sandy shallow edge; dry grassy bank and a folded blue cloth; peaceful, no characters needed, upper third open.",
+      "width": 1024,
+      "height": 1400
+    }
+  ],
+  "face_order": [
+    "front-cover",
+    "page-01",
+    "page-02",
+    "page-03",
+    "page-04",
+    "page-05",
+    "page-06",
+    "back-cover"
+  ],
+  "bookContent": {
+    "title": "Pip, One Little Step",
+    "subtitle": "A LITTLE STORY",
+    "sheets": [
+      {
+        "front": {
+          "cover": true,
+          "title": "Pip, One Little Step",
+          "subtitle": "",
+          "image": null
+        },
+        "back": {
+          "number": "01",
+          "label": "Watching Together",
+          "image": null
+        }
+      },
+      {
+        "front": {
+          "number": "02",
+          "label": "Watching Together",
+          "image": null
+        },
+        "back": {
+          "number": "03",
+          "label": "A Little Touch",
+          "image": null
+        }
+      },
+      {
+        "front": {
+          "number": "04",
+          "label": "A Little Touch",
+          "image": null
+        },
+        "back": {
+          "number": "05",
+          "label": "My Own Small Step",
+          "image": null
+        }
+      },
+      {
+        "front": {
+          "number": "06",
+          "label": "My Own Small Step",
+          "image": null
+        },
+        "back": {
+          "cover": true,
+          "title": "The End",
+          "subtitle": "",
+          "image": null,
+          "end": true
+        }
+      }
+    ],
+    "chapters": [
+      "Pip, One Little Step",
+      "Watching Together",
+      "A Little Touch",
+      "My Own Small Step",
+      "The End"
+    ]
+  }
+}

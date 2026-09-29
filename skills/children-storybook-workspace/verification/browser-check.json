@@ -1,0 +1,19 @@
+{
+  "fixture": "Synthetic solid-color artwork, not an image-generation evaluation",
+  "results": [
+    {
+      "name": "body",
+      "width": 1024,
+      "height": 1400,
+      "visibleTextPixels": 25414,
+      "exportable": true
+    },
+    {
+      "name": "cover",
+      "width": 1024,
+      "height": 1400,
+      "visibleTextPixels": 13210,
+      "exportable": true
+    }
+  ]
+}

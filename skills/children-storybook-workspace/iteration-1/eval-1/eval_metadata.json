@@ -1,0 +1,12 @@
+{
+  "eval_id": 1,
+  "eval_name": "firefly-friendship",
+  "prompt": "故事概况：小兔 Milo 在花园遇到一只迷路的萤火虫。他们一起找家，最后发现朋友可以照亮回家的路。给 4–7 岁孩子做英文绘本，4 个主题跨页，用当前翻页书。此次只做策划演练：不要生成图片或改动应用。请交付英文全文、角色设定、逐页分镜、图片提示词、manifest 和准确的接入方案；缺少的图片要标明。",
+  "assertions": [
+    "Requested spread count and complete English page text are present.",
+    "Stable character definitions and page-specific image prompts are present.",
+    "The installation plan correctly maps adjacent spreads onto front/back physical sheets.",
+    "The plan explains how English becomes visible despite the image-only renderer.",
+    "Missing artwork is explicit; no draft is represented as a completed illustrated book."
+  ]
+}

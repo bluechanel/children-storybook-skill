@@ -1,0 +1,59 @@
+{
+  "id": "milo-and-the-little-light-v1",
+  "title": "Milo and the Little Light",
+  "age_range": "4-7",
+  "cover": {
+    "text": "Milo and the Little Light",
+    "art": "art/cover.png"
+  },
+  "back_cover": {
+    "text": "The End",
+    "art": "art/back.png"
+  },
+  "spreads": [
+    {
+      "theme": "A Little Light",
+      "left": {
+        "text": "Milo found a tiny light under a leaf. “I am Glow,” it said. “I cannot find my home.”",
+        "art": "art/page-01.png"
+      },
+      "right": {
+        "text": "“I will help,” said Milo. “What is your home like?” “Tall grass beside a little pond,” said Glow.",
+        "art": "art/page-02.png"
+      }
+    },
+    {
+      "theme": "Looking Together",
+      "left": {
+        "text": "They looked behind the flowers. No pond. They looked beside the carrots. No tall grass. Glow’s light grew small.",
+        "art": "art/page-03.png"
+      },
+      "right": {
+        "text": "“We can rest,” said Milo. They sat beside a stone wall. Then Milo heard a soft sound. Plip. Plop.",
+        "art": "art/page-04.png"
+      }
+    },
+    {
+      "theme": "Over the Wall",
+      "left": {
+        "text": "“Water!” said Milo. He found a low gap in the wall. But the path beyond it was dark.",
+        "art": "art/page-05.png"
+      },
+      "right": {
+        "text": "“I can shine,” said Glow. Milo followed the little light. Together, they found the pond and its tall grass.",
+        "art": "art/page-06.png"
+      }
+    },
+    {
+      "theme": "Lights at Home",
+      "left": {
+        "text": "Tiny lights blinked in the grass. “My family!” cried Glow. Milo smiled. Then he looked back at the dark path.",
+        "art": "art/page-07.png"
+      },
+      "right": {
+        "text": "“We will help you home,” said Glow. Little lights danced beside Milo, all the way to his garden gate.",
+        "art": "art/page-08.png"
+      }
+    }
+  ]
+}

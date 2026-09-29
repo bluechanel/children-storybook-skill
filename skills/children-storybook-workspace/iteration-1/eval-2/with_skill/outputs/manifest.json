@@ -1,0 +1,48 @@
+{
+  "id": "pip-at-the-water-edge-v1",
+  "title": "Pip at the Water’s Edge",
+  "age_range": "4",
+  "cover": {
+    "text": "Pip at the Water’s Edge",
+    "art": "art/cover.png"
+  },
+  "back_cover": {
+    "text": "The End",
+    "art": "art/back.png"
+  },
+  "spreads": [
+    {
+      "theme": "Just a Touch",
+      "left": {
+        "text": "Pip stayed on the dry bank. “The water makes me feel wobbly.” “We can sit here,” said his friend Rue.",
+        "art": "art/page-01.png"
+      },
+      "right": {
+        "text": "Mama sat close by. Pip leaned toward the shallow edge. “Just one paw,” he said, and touched the cool water.",
+        "art": "art/page-02.png"
+      }
+    },
+    {
+      "theme": "A Little Ripple",
+      "left": {
+        "text": "A little ripple tickled Pip’s paw. He pulled it back. Rue waited beside him. “We can stop,” she said.",
+        "art": "art/page-03.png"
+      },
+      "right": {
+        "text": "Pip watched the water grow still. Then he dipped one paw again. “Look! I made a tiny circle.”",
+        "art": "art/page-04.png"
+      }
+    },
+    {
+      "theme": "My Kind of Splash",
+      "left": {
+        "text": "“I want to try a little splash,” said Pip. He stayed on the bank and patted the shallow water.",
+        "art": "art/page-05.png"
+      },
+      "right": {
+        "text": "Pip splashed. Rue splashed beside him. “I still feel wobbly,” said Pip. “But I like playing right here.”",
+        "art": "art/page-06.png"
+      }
+    }
+  ]
+}

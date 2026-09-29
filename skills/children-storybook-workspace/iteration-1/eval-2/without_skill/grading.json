@@ -1,0 +1,41 @@
+{
+  "expectations": [
+    {
+      "text": "Requested spread count and complete English page text are present.",
+      "passed": true,
+      "evidence": "manifest.json: 3 spreads, 6 populated English interior pages; per-page word counts [20, 17, 18, 17, 20, 19]."
+    },
+    {
+      "text": "Stable character definitions and page-specific image prompts are present.",
+      "passed": true,
+      "evidence": "characters.md specifies fixed colors, clothing, anatomy, scale and setting; prompts.md supplies per-page actions and no-text constraints. Independently inspected the character bible, storyboard and all prompt sections."
+    },
+    {
+      "text": "The installation plan correctly maps adjacent spreads onto front/back physical sheets.",
+      "passed": true,
+      "evidence": "integration.md lists sheet 0 = cover/page 1 through sheet 3 = page 6/back cover; 4 sheets and 5 navigation states."
+    },
+    {
+      "text": "The plan explains how English becomes visible despite the image-only renderer.",
+      "passed": true,
+      "evidence": "integration.md identifies image-only makeTexture behavior and proposes separately typeset flattened PNG pages before installation."
+    },
+    {
+      "text": "Missing artwork is explicit; no draft is represented as a completed illustrated book.",
+      "passed": true,
+      "evidence": "prompts.md and integration.md explicitly state all images are missing and installation has not occurred; manifests remain draft/planned asset paths."
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1.0
+  },
+  "eval_feedback": {
+    "suggestions": [
+      "Planning-only checks cannot evaluate generated character consistency, image quality, or a fully installed illustrated book.",
+      "Both configurations satisfy these checks; the tests do not demonstrate superior story quality."
+    ]
+  }
+}

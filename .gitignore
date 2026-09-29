@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.reference/
+.DS_Store
+tmp/
+output/
+test-results/
+playwright-report/
+.env
+.env.*
+!.env.example
+**/__pycache__/
+stories/*/audio/.cache/
+stories/*/audio/.audio-*/
+stories/*/video/.render-*/
+stories/*/pages/.storybook-*/

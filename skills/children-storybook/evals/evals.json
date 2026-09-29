@@ -1,0 +1,58 @@
+{
+  "skill_name": "children-storybook",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "故事概况：小兔 Milo 在花园遇到一只迷路的萤火虫。他们一起找家，最后发现朋友可以照亮回家的路。给 4–7 岁孩子做英文绘本，4 个主题跨页，用当前翻页书。此次只做策划演练：不要生成图片或改动应用。请交付英文全文、角色设定、逐页分镜、图片提示词、manifest 和准确的接入方案；缺少的图片要标明。",
+      "expected_output": "Coherent simple English; 4 thematic spreads; fixed rabbit/firefly identity; 8 pages + covers; no claim of generated artwork.",
+      "files": [],
+      "expectations": [
+        "Requested spread count and complete English page text are present.",
+        "Stable character definitions and page-specific image prompts are present.",
+        "The installation plan correctly maps adjacent spreads onto front/back physical sheets.",
+        "The plan explains how English becomes visible despite the image-only renderer.",
+        "Missing artwork is explicit; no draft is represented as a completed illustrated book."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "给 4 岁孩子做一本英文故事书：小熊 Pip 怕水，朋友陪他从摸摸水面开始，最后愿意在浅水边玩。不要写成被推下水或突然不怕了。共 3 个主题跨页，温柔的水彩插画，填入现有 Three.js 翻页书。此次只做策划演练，不生成图片也不修改项目；提供逐页英文、角色设定、插画提示词、manifest 和安装方案。",
+      "expected_output": "Gentle agency-preserving story; 3 spreads; no coercion; 6 pages + covers; exact sheet order and deterministic text composition.",
+      "files": [],
+      "expectations": [
+        "Requested spread count and complete English page text are present.",
+        "Stable character definitions and page-specific image prompts are present.",
+        "The installation plan correctly maps adjacent spreads onto front/back physical sheets.",
+        "The plan explains how English becomes visible despite the image-only renderer.",
+        "Missing artwork is explicit; no draft is represented as a completed illustrated book."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "用 children-storybook 的提示词流水线：为已有的 stories/<id>/ 写出 characters.md 和 scenes.md，使其覆盖全部页面，然后运行 gen_prompts.py 生成 prompts/ 与 ref-map.json。不要调用任何图像接口。把 --check 的输出和生成的提示词全文给我。",
+      "expected_output": "characters.md with shared art direction and one ## ref- section per reference sheet; scenes.md covering every page in the manifest; prompts/<name>.txt generated deterministically; ref-map.json resolving every reference keyword.",
+      "files": [],
+      "expectations": [
+        "characters.md carries the shared art direction keys plus one ## ref- section per reference sheet.",
+        "scenes.md covers every page named by the manifest, including cover and back.",
+        "Each generated prompt follows the documented line order, ending with Constraints and Palette.",
+        "Every 'Reference image N:' line resolves to a file inside the story directory.",
+        "gen_prompts.py --check reports no drift and missing_from_scenes is empty.",
+        "No image API call is made."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "为 stories/<id>/ 规划出图：只运行 gen_art.py --dry-run，不要发任何请求，也不要消耗额度。告诉我每个资产会用到哪些参考图、按什么顺序，以及哪些文件当前还缺失。",
+      "expected_output": "A dry-run plan listing every asset with its resolved reference images in order, reference sheets first, and the missing files called out; no network request.",
+      "files": [],
+      "expectations": [
+        "Reference sheets are ordered before the pages that cite them.",
+        "The reference order reported for a multi-reference page matches the order of its 'Reference image N:' lines.",
+        "Assets whose reference images do not exist yet are reported as missing rather than silently skipped.",
+        "No request is made and no API key is required.",
+        "The report does not claim artwork was generated."
+      ]
+    }
+  ]
+}
