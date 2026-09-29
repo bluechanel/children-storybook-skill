@@ -1,0 +1,65 @@
+name: release
+
+# Publishing a release is: create the tag, push it, and let this workflow run.
+#   V=$(cat skills/children-storybook/VERSION)
+#   git tag -a "v$V" -m "children-storybook v$V"
+#   git push origin "v$V"
+#
+# The tag must match skills/children-storybook/VERSION; the check below fails otherwise.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install development dependencies
+        run: npm ci
+
+      - name: Verify the skill (tests + renderer artifact in sync)
+        run: npm run test:skill
+
+      - name: Check that the tag matches VERSION
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          set -euo pipefail
+          VERSION="$(cat skills/children-storybook/VERSION)"
+          TAG="${GITHUB_REF_NAME#v}"
+          if [ "$TAG" != "$VERSION" ]; then
+            echo "::error::tag v$TAG does not match skills/children-storybook/VERSION ($VERSION)"
+            exit 1
+          fi
+
+      - name: Package the skill as a zip
+        run: |
+          set -euo pipefail
+          VERSION="$(cat skills/children-storybook/VERSION)"
+          # SKILL.md must sit at the archive root for the strict packagers
+          # (claude.ai upload, the Skills API, package_skill.py). git archive only
+          # includes committed files, so dist/, node_modules/, tmp/ and caches are
+          # excluded for free.
+          git archive --format=zip -o "children-storybook-${VERSION}.zip" HEAD:skills/children-storybook
+          unzip -l "children-storybook-${VERSION}.zip" | head -20
+
+      - name: Publish the release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: children-storybook-*.zip
+          generate_release_notes: true
+          fail_on_unmatched_files: true
