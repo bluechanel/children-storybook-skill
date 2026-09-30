@@ -53,6 +53,23 @@
         "No request is made and no API key is required.",
         "The report does not claim artwork was generated."
       ]
+    },
+    {
+      "id": 5,
+      "prompt": "英文绘本 MP4 已导出，给我抖音、小红书、B站的横竖封面、标题、tag 和简介。用现有故事，不要重新配音或导出视频。本次离线演练只使用 examples/goldilocks/manifest.json 和 story.md：写发布文案 JSON、运行文案检查，并列出拿到真实视频后生成封面的准确命令。不要声称已经有封面或完成视频验证。",
+      "expected_output": "Story-grounded Chinese copy for three platforms, validated via --check-copy, and a story-local publishing plan with 9:16, 16:9 and 3:4 covers. No regeneration, upload or false completion claim.",
+      "files": [
+        "examples/goldilocks/manifest.json",
+        "examples/goldilocks/story.md"
+      ],
+      "expectations": [
+        "Each platform has a distinct usable title, a short accurate description and 3–8 relevant tags.",
+        "The copy JSON passes publish_bundle.mjs --check-copy.",
+        "The cover plan reuses original story art and typesets exact text separately.",
+        "All source and output paths are inside the selected story publishing directory, including in an isolated evaluation project.",
+        "The plan uses the existing MP4 with its paired report and does not regenerate audio or video.",
+        "Missing video validation and unrendered covers are clearly distinguished from completed copy; no upload is attempted."
+      ]
     }
   ]
 }

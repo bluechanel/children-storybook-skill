@@ -16,13 +16,14 @@ and owning the retry policy matters more than the multipart encoder the SDK woul
 """
 import argparse
 import base64
+import hashlib
+import shutil
 import http.client
 import json
 import math
 import os
 import re
 import sys
-import threading
 import time
 import urllib.error
 import urllib.parse
@@ -53,7 +54,6 @@ RETRYABLE = {408, 409, 429}
 NETWORK_ERRORS = (urllib.error.URLError, TimeoutError, OSError, http.client.HTTPException)
 REF_LINE = re.compile(r'^Reference image (\d+):\s*(.*)$', re.MULTILINE)
 PATH_TOKEN = re.compile(r'([\w][\w./-]*\.(?:png|jpe?g|webp))', re.IGNORECASE)
-PRINT_LOCK = threading.Lock()
 
 
 class UsageError(Exception):
@@ -197,7 +197,7 @@ def resolve_references(text, story, ref_map):
         token = PATH_TOKEN.search(line)
         if token:
             candidate = (story / token.group(1)).resolve()
-            if candidate.is_relative_to(story.resolve()) and candidate.is_file():
+            if candidate.is_relative_to(story.resolve()):
                 resolved.append(candidate)
                 continue
         lowered = line.lower()
@@ -244,7 +244,97 @@ def plan_target(story, name, ref_map, out_dir):
     if unresolved:
         raise UsageError(f'{name}: cannot resolve reference line(s): {"; ".join(unresolved)}. '
                          f'Add a path or a keyword to {story / "ref-map.json"}.')
-    return {'name': name, 'prompt': text, 'references': references, 'out': out_dir / f'{name}.png'}
+    return {'name': name, 'prompt': text, 'references': references, 'out': out_dir / f'{name}.png', 'story': story}
+
+
+def provenance_path(task):
+    return task['out'].with_suffix('.provenance.json')
+
+
+def digest(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def input_digest(task, settings):
+    # Store only hashes: no credential or endpoint query can leak into the sidecar.
+    inputs = {key: settings[key] for key in ('base_url', 'model', 'size', 'quality', 'extra')}
+    inputs['prompt'] = task['prompt']
+    inputs['references'] = [digest(ref.read_bytes()) if ref.is_file() else None
+                            for ref in task['references']]
+    return digest(json.dumps(inputs, sort_keys=True).encode())
+
+
+def asset_state(task, settings):
+    if not task['out'].is_file():
+        return 'missing'
+    try:
+        saved = json.loads(provenance_path(task).read_text())
+        if saved.get('version') != 1 or not saved.get('input') or not saved.get('output'):
+            return 'untracked'
+    except (OSError, ValueError, AttributeError):
+        return 'untracked'
+    if saved['output'] != digest(task['out'].read_bytes()):
+        return 'modified'
+    return 'reusable' if saved['input'] == input_digest(task, settings) else 'stale'
+
+
+def dependency_layers(tasks):
+    """Topological waves: a page cannot run until its selected references finish."""
+    remaining = {task['out'].resolve(): task for task in tasks}
+    if len(remaining) != len(tasks):
+        raise UsageError('Duplicate output assets in this batch.')
+    layers = []
+    while remaining:
+        ready = [task for task in remaining.values()
+                 if not any(ref.resolve() in remaining for ref in task['references'])]
+        if not ready:
+            raise UsageError('Cyclic reference dependencies: ' + ', '.join(t['name'] for t in remaining.values()))
+        # Finish reference sheets before unrelated page work too.
+        refs = [task for task in ready if task['name'].startswith('ref-')]
+        ready = refs or ready
+        layers.append(ready)
+        for task in ready:
+            del remaining[task['out'].resolve()]
+    return layers
+
+
+def run_batch(tasks, settings, api_key, log_dir, workers, force=False, refresh_stale=False):
+    failures, generated, skipped, auth_failed = 0, 0, 0, False
+    failed = set()
+    with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
+        for layer in dependency_layers(tasks):
+            futures = []
+            for task in layer:
+                if any(ref.resolve() in failed for ref in task['references']):
+                    failed.add(task['out'].resolve())
+                    failures += 1
+                    print(f'[FAIL] {task["name"]}: blocked by failed reference')
+                    continue
+                # Re-evaluate after reference generation: its bytes may have changed.
+                try:
+                    state = asset_state(task, settings)
+                except OSError as error:
+                    failed.add(task['out'].resolve())
+                    failures += 1
+                    print(f'[FAIL] {task["name"]}: could not inspect asset: {error}')
+                    continue
+                if not (force or state == 'missing' or refresh_stale and state == 'stale'):
+                    skipped += 1
+                    hint = ' (use --refresh-stale to regenerate)' if state == 'stale' else ''
+                    print(f'[skip] {task["name"]}: {state}{hint}')
+                    continue
+                futures.append((task, pool.submit(run_target, task, settings, api_key, log_dir)))
+            for task, future in futures:
+                status, detail = future.result()
+                print(f'[{"ok  " if status == "ok" else "FAIL"}] {task["name"]}: {detail}')
+                if status == 'ok':
+                    generated += 1
+                else:
+                    failures += 1
+                    failed.add(task['out'].resolve())
+                    auth_failed = auth_failed or status == 'AUTH'
+    print(f'done, failures={failures} generated={generated} skipped={skipped}')
+    return 3 if auth_failed else 1 if failures else 0
 
 
 def note(log_path, message):
@@ -275,6 +365,7 @@ def run_target(task, settings, api_key, log_dir):
               ('size', settings['size']), ('quality', settings['quality']), ('n', 1)]
     fields += [tuple(item.split('=', 1)) for item in settings['extra'] if '=' in item]
     try:
+        fingerprint = input_digest(task, settings)
         if references:
             endpoint = f'{settings["base_url"]}/images/edits'
             files = [(name, path.name, data, image_kind(data) or 'image/png')
@@ -297,7 +388,23 @@ def run_target(task, settings, api_key, log_dir):
             destination.parent.mkdir(parents=True, exist_ok=True)
             temporary = destination.with_suffix('.png.tmp')
             temporary.write_bytes(data)
+            # Keep accepted/older images recoverable, even on an explicit --force.
+            if destination.is_file():
+                backup = task['story'] / 'backups' / 'art' / uuid.uuid4().hex
+                backup.mkdir(parents=True)
+                shutil.copy2(destination, backup / destination.name)
+                if provenance_path(task).is_file():
+                    shutil.copy2(provenance_path(task), backup / provenance_path(task).name)
             os.replace(temporary, destination)
+            metadata = provenance_path(task)
+            try:
+                metadata_tmp = metadata.with_suffix('.json.tmp')
+                metadata_tmp.write_text(json.dumps({'version': 1, 'input': fingerprint,
+                                                   'output': digest(data)}, indent=2) + '\n')
+                os.replace(metadata_tmp, metadata)
+            except OSError as error:
+                # Never retry a paid generation just because provenance could not be saved.
+                return 'ok', f'image saved; provenance unavailable: {error}'
             return 'ok', f'{time.time()-started:.0f}s {len(data)/1e6:.2f}MB refs={len(references)}'
         except ApiError as error:
             if attempt < settings['attempts'] and error.retryable:
@@ -361,6 +468,7 @@ def main():
     parser.add_argument('--attempts', type=int, default=3)
     parser.add_argument('--retry-delay', type=float, default=20.0, help='Seconds before the first retry (grows 1.5x)')
     parser.add_argument('--timeout', type=float, default=300.0, help='Seconds per request')
+    parser.add_argument('--refresh-stale', action='store_true', help='Regenerate tracked stale assets; preserve untracked or manually modified images')
     parser.add_argument('--force', action='store_true', help='Regenerate assets that already exist')
     parser.add_argument('--model', help='Image model (default: $OPENAI_IMAGE_NAME or gpt-image-2)')
     parser.add_argument('--size', help='Image size, e.g. 1536x1024 (default: from characters.md, else 1536x1024)')
@@ -413,6 +521,7 @@ def main():
     try:
         ref_map = load_ref_map(story, args.ref_map)
         tasks = [plan_target(story, name, ref_map, out_dir) for name in targets]
+        layers = dependency_layers(tasks)
     except UsageError as error:
         parser.exit(2, f'Error: {error}\n')
 
@@ -421,12 +530,13 @@ def main():
         print(f'model     {settings["model"]}   size {settings["size"]}   quality {settings["quality"]}')
         print(f'out-dir   {out_dir}')
         print(f'workers   {args.workers}   attempts {settings["attempts"]}')
-        for task in tasks:
-            state = 'exists' if task['out'].is_file() else 'new'
+        for task in (task for layer in layers for task in layer):
+            state = asset_state(task, settings)
             refs = ', '.join(ref.name for ref in task['references']) or '— (text to image)'
             gaps = [ref.name for ref in task['references'] if not ref.is_file()]
             print(f'  {task["name"]:14s} {state:6s} refs[{len(task["references"])}]: {refs}'
                   + (f'   MISSING: {", ".join(gaps)}' if gaps else ''))
+        print('States use current reference bytes; downstream states are rechecked after references finish.')
         print(f'No requests were made. {len(tasks)} asset(s) planned.')
         return
 
@@ -476,30 +586,10 @@ def main():
     except OSError as error:
         parser.exit(2, f'Error: cannot write the output directory {out_dir}: {error}\n')
 
-    pending = [task for task in tasks if args.force or not task['out'].is_file()]
-    for task in tasks:
-        if task not in pending:
-            print(f'[skip] {task["name"]:14s} already exists')
-    failures, auth_failed = 0, False
-    with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
-        futures = {pool.submit(run_target, task, settings, api_key, log_dir): task for task in pending}
-        for future, task in futures.items():
-            status, detail = future.result()
-            with PRINT_LOCK:
-                if status == 'ok':
-                    print(f'[ok  ] {task["name"]:14s} {detail}')
-                elif status == 'AUTH':
-                    auth_failed = True
-                    failures += 1
-                    print(f'[FAIL] {task["name"]:14s} {detail}')
-                else:
-                    failures += 1
-                    print(f'[FAIL] {task["name"]:14s} {detail}')
-    print(f'done, failures={failures} generated={len(pending)-failures} skipped={len(tasks)-len(pending)}')
-    if auth_failed:
-        sys.exit(3)
-    if failures:
-        sys.exit(1)
+    code = run_batch(tasks, settings, api_key, log_dir, args.workers,
+                     force=args.force, refresh_stale=args.refresh_stale)
+    if code:
+        sys.exit(code)
 
 
 if __name__ == '__main__':

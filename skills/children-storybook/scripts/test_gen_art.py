@@ -373,6 +373,85 @@ class GenArtTests(unittest.TestCase):
         self.assertIn('could not write', output)
         self.assertNotIn('Traceback', output)
 
+    def test_concurrent_dependencies_wait_and_failed_reference_blocks_old_art(self):
+        import time
+        for name in ('ref-a', 'ref-b'):
+            (self.story / 'prompts' / f'{name}.txt').write_text(f'Scene: {name}')
+            (self.story / 'art' / f'{name}.png').unlink()
+        def handler(n, url, body):
+            if url.endswith('/generations'):
+                time.sleep(0.02)
+            else:
+                self.assertTrue((self.story / 'art/ref-a.png').is_file())
+                self.assertTrue((self.story / 'art/ref-b.png').is_file())
+            return 200, b64_response()
+        code, output = self.run_cli(['--story', str(self.story), 'page-01', 'ref-a', 'ref-b', '--workers', '4'], handler)
+        self.assertEqual(code, 0, output)
+        self.assertEqual(len(self.calls), 3)
+        self.assertTrue(self.calls[-1]['url'].endswith('/edits'))
+        self.calls.clear()
+        code, output = self.run_cli(['--story', str(self.story), 'page-01', 'ref-a', '--force', '--workers', '4'],
+                                    lambda n, url, body: (400, b'{"error":{"message":"bad reference"}}'))
+        self.assertEqual(code, 1, output)
+        self.assertEqual(len(self.calls), 1, 'failed reference blocks the page even though old art exists')
+        self.assertIn('blocked by failed reference', output)
+
+    def test_cycle_rejected_without_requests(self):
+        (self.story / 'prompts/ref-a.txt').write_text('Reference image 1: art/ref-b.png')
+        (self.story / 'prompts/ref-b.txt').write_text('Reference image 1: art/ref-a.png')
+        code, output = self.run_cli(['--story', str(self.story)], lambda *args: self.fail('no requests'))
+        self.assertEqual(code, 2)
+        self.assertIn('Cyclic', output)
+
+    def test_provenance_refresh_is_selective_and_preserves_previous_art(self):
+        args = ['--story', str(self.story), 'page-01']
+        handler = lambda n, url, body: (200, b64_response())
+        self.assertEqual(self.run_cli(args, handler)[0], 0)
+        self.assertIn('reusable', self.run_cli(args + ['--dry-run'], handler)[1])
+        prompt = self.story / 'prompts/page-01.txt'
+        prompt.write_text(PROMPT + 'Palette: blue')
+        self.assertIn('stale', self.run_cli(args + ['--dry-run'], handler)[1])
+        self.assertEqual(self.run_cli(args, handler)[0], 0)
+        self.assertEqual(len(self.calls), 1, 'default preserves stale art')
+        self.assertEqual(self.run_cli(args + ['--refresh-stale'], handler)[0], 0)
+        self.assertEqual(len(self.calls), 2)
+        backups = list((self.story / 'backups/art').glob('*/page-01.png'))
+        self.assertEqual(len(backups), 1)
+        self.assertEqual(backups[0].read_bytes(), PNG)
+        self.assertTrue(backups[0].with_suffix('.provenance.json').is_file())
+        self.assertIn('reusable', self.run_cli(args + ['--dry-run'], handler)[1])
+        (self.story / 'art/ref-a.png').write_bytes(PNG + b'changed reference')
+        self.assertIn('stale', self.run_cli(args + ['--dry-run'], handler)[1])
+        (self.story / 'art/page-01.png').write_bytes(PNG + b'manual edit')
+        self.assertIn('modified', self.run_cli(args + ['--dry-run'], handler)[1])
+        self.run_cli(args + ['--refresh-stale'], handler)
+        self.assertEqual(len(self.calls), 2, 'manual edits are not auto-refreshed')
+        (self.story / 'art/page-01.provenance.json').unlink()
+        self.assertIn('untracked', self.run_cli(args + ['--dry-run'], handler)[1])
+        self.run_cli(args + ['--refresh-stale'], handler)
+        self.assertEqual(len(self.calls), 2, 'legacy images are preserved')
+
+    def test_refresh_rechecks_dependants_after_reference_changes(self):
+        (self.story / 'prompts/ref-a.txt').write_text('Scene: sheet')
+        args = ['--story', str(self.story), 'page-01', 'ref-a', '--workers', '4']
+        self.run_cli(args + ['--force'], lambda *args: (200, b64_response()))
+        self.calls.clear()
+        (self.story / 'prompts/ref-a.txt').write_text('Scene: changed sheet')
+        def handler(n, url, body):
+            data = PNG + b'new ref' if url.endswith('/generations') else PNG
+            return 200, json.dumps({'data': [{'b64_json': base64.b64encode(data).decode()}]}).encode()
+        code, output = self.run_cli(args + ['--refresh-stale'], handler)
+        self.assertEqual(code, 0, output)
+        self.assertEqual(len(self.calls), 2, 'reference change invalidates page within the same run')
+
+    def test_generation_settings_invalidate_provenance(self):
+        args = ['--story', str(self.story), 'page-01']
+        handler = lambda *args: (200, b64_response())
+        self.run_cli(args, handler)
+        for option in (['--model', 'different'], ['--size', '1024x1024'], ['--quality', 'low'], ['--extra', 'seed=3']):
+            self.assertIn('stale', self.run_cli(args + option + ['--dry-run'], handler)[1])
+
+
 
 if __name__ == '__main__':
     unittest.main()

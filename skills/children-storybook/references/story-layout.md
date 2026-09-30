@@ -11,14 +11,17 @@ stories/<id>/
   prompts.md              actual image prompts and provenance
   content.js              active page data; includes storyId
   narration.js            selected real narration URL, initially null
-  art/                    original generated images
+  art/                    generated images and adjacent provenance JSON
   pages/<version>/        composed SVG pages and content.js version snapshot
   audio/<version>/        per-page WAVs, master.wav, timeline.json, requests.json
   audio/.cache/           reusable TTS cache for this story only
   audio/requests.json     non-generating TTS plan
   video/                  exported MP4s and export metadata
+  publishing/copy-*.json   agent-written platform copy and cover brief
+  publishing/<version>/   horizontal/vertical covers, publish.md/json, layouts and preview
   qa/                     reports, screenshots, decoded test audio
-  backups/                earlier active content/narration configuration
+  qa/previews/            one lightweight sampled contact sheet and slot metadata
+  backups/                earlier configuration and replaced art under art/<run-id>/
   archive/                preserved legacy packages, when needed
 ```
 
@@ -61,6 +64,7 @@ Do not copy sources into `public/stories`, `public/narration`, root `exports`, o
 - `build_book.py ... --build v2`: requires `stories/<id>/manifest.json`; writes `pages/v2/`, updates story-local content.js and saves earlier content under backups/. `--output` is accepted only for a direct `pages/<version>` directory. A story kept outside `<stories>/<id>/` needs an explicit `--project` or `--story-dir`; without one it is refused.
 - `prepare_narration.mjs` / `narrate.mjs`: use the selected storyId, check its manifest and write into its audio/. `--install` updates that story's narration.js with a backup; neither copies assets into public/. Local TTS models and voice reference WAVs belong to the separate `moss-tts` project, never inside a story folder.
 - `export_video.mjs`: accepts timelines only from the selected story's audio/ and output only inside its video/. Default filename is the audio-version name plus .mp4.
+- `publish_bundle.mjs`: reads a completed story-local MP4 and export report, original art and copy; writes a new version under the same story's publishing/ and updates the paired export report's publishing status. `export_video.mjs --publish-copy` invokes it after successful encoding. Publishing files are local deliverables, not reader assets served in dist/.
 - `verify_fixture_audio.mjs`: reads the selected story's audio/video and writes checks to qa/.
 - `shot_pages.mjs`, `qa_browser.mjs`: write only into the selected story's `qa/`.
 - Story-specific scripts such as demo typography adjustments must also read and write within the story directory.

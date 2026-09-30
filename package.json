@@ -15,9 +15,11 @@
     "test:media": "node --test tests/media.test.mjs",
     "test:narration": "node --test tests/tts-endpoint.test.mjs",
     "test:scripts": "node --test tests/script-entry.test.mjs",
-    "test:skill": "python3 skills/children-storybook/scripts/test_build_book.py && python3 skills/children-storybook/scripts/test_gen_prompts.py && python3 skills/children-storybook/scripts/test_gen_art.py && python3 skills/children-storybook/scripts/test_example_story.py && node --test tests/script-entry.test.mjs && node skills/children-storybook/renderer/build.mjs --check",
+    "test:skill": "python3 skills/children-storybook/scripts/test_build_book.py && python3 skills/children-storybook/scripts/test_gen_prompts.py && python3 skills/children-storybook/scripts/test_gen_art.py && python3 skills/children-storybook/scripts/test_example_story.py && python3 skills/children-storybook/scripts/test_preview_art.py && node --test tests/script-entry.test.mjs && node --test tests/publishing.test.mjs && node skills/children-storybook/renderer/build.mjs --check",
     "build:renderer": "node skills/children-storybook/renderer/build.mjs",
-    "video:verify-fixture": "node skills/children-storybook/scripts/verify_fixture_audio.mjs"
+    "video:verify-fixture": "node skills/children-storybook/scripts/verify_fixture_audio.mjs",
+    "publish:bundle": "node skills/children-storybook/scripts/publish_bundle.mjs",
+    "test:publishing": "node --test tests/publishing.test.mjs"
   },
   "keywords": [],
   "author": "",

@@ -9,7 +9,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { resolveTts, voiceFingerprint, prepare, wav, pcmData, measureLevel, levelGain, DEFAULT_DISCLOSURE, FIXTURE_DISCLOSURE } from '../skills/children-storybook/scripts/prepare_narration.mjs';
-import { checkTts } from '../skills/children-storybook/scripts/narrate.mjs';
+import { checkTts, narrate, parseArgs as parseNarrateArgs } from '../skills/children-storybook/scripts/narrate.mjs';
 
 const book = {
   storyId: 'endpoint-fixture-v1',
@@ -451,4 +451,119 @@ test('--check reports a voice preset whose reference audio the server is not usi
       assert.ok(!healthy.problems.some(problem => /ref_audio_ok/.test(problem)));
     });
   } finally { globalThis.fetch = original; }
+});
+
+
+test('narrate plan is offline without a credential or ffmpeg and rejects mixed modes', async () => {
+  await withEnv({ OPENAI_TTS_BASE_URL: 'https://offline.example/v1' }, () => withTempProject(async ({ project, story }) => {
+    const original = globalThis.fetch, ffmpeg = process.env.FFMPEG_PATH;
+    globalThis.fetch = () => { assert.fail('plan must not call the network'); };
+    process.env.FFMPEG_PATH = '/missing/ffmpeg';
+    try {
+      assert.deepEqual(await narrate({ project, plan: true, 'refresh-page': ['page-02'] }), { planned: true });
+      const plan = JSON.parse(await fs.readFile(path.join(story, 'audio/requests.json'), 'utf8'));
+      assert.deepEqual(plan.refreshPages, ['page-02']);
+      assert.ok(plan.requests.every(request => !('seed' in request.body)));
+      await assert.rejects(narrate({ project, plan: true, install: true }), /cannot be combined/);
+    } finally {
+      globalThis.fetch = original;
+      if (ffmpeg === undefined) delete process.env.FFMPEG_PATH; else process.env.FFMPEG_PATH = ffmpeg;
+    }
+  }));
+});
+
+test('speech-only endpoint can generate despite unsupported metadata routes; auth still fails', async () => {
+  await withEnv({ OPENAI_TTS_BASE_URL: 'https://speech.example/v1', OPENAI_TTS_API_KEY: 'unit-token' }, () => withTempProject(async ({ project }) => {
+    const original = globalThis.fetch, record = [];
+    globalThis.fetch = async (url, options = {}) => {
+      record.push({ url: String(url), options });
+      return String(url).endsWith('/audio/speech') ? new Response(wav(4800, true)) : new Response('', { status: 404 });
+    };
+    try {
+      const check = await checkTts();
+      assert.equal(check.ok, true);
+      assert.equal(check.warnings.length, 1);
+      await narrate({ project, name: 'speech-only' });
+      assert.equal(speechRequests(record).length, 4);
+      for (const status of [401, 403, 500]) {
+        globalThis.fetch = async () => new Response('', { status });
+        assert.equal((await checkTts()).ok, false);
+      }
+    } finally { globalThis.fetch = original; }
+  }));
+});
+
+test('cache separates endpoints, canonicalizes equivalent URLs and does not reuse legacy entries', async () => {
+  await withEnv({ OPENAI_TTS_BASE_URL: 'https://ONE.example:443/v1/', OPENAI_TTS_API_KEY: 'unit-token' }, () => withTempProject(async ({ project, story }) => {
+    const original = globalThis.fetch, record = [];
+    globalThis.fetch = mockFetch(record, { voicesStatus: 404 });
+    try {
+      await prepare({ project, plan: true });
+      const plan = JSON.parse(await fs.readFile(path.join(story, 'audio/requests.json'), 'utf8'));
+      await fs.mkdir(path.join(story, 'audio/.cache'));
+      for (const request of plan.requests) await fs.writeFile(path.join(story, 'audio/.cache', request.hash + '.wav'), wav(4800, true));
+      await prepare({ project, generate: true, name: 'one' });
+      assert.equal(speechRequests(record).length, 4, 'legacy cache has no known endpoint');
+      process.env.OPENAI_TTS_BASE_URL = 'https://one.example/v1';
+      await prepare({ project, generate: true, name: 'same' });
+      assert.equal(speechRequests(record).length, 4);
+      process.env.OPENAI_TTS_BASE_URL = 'https://two.example/v1';
+      await prepare({ project, generate: true, name: 'two' });
+      assert.equal(speechRequests(record).length, 8);
+      process.env.OPENAI_TTS_BASE_URL = 'https://one.example/v1';
+      await prepare({ project, generate: true, name: 'back' });
+      assert.equal(speechRequests(record).length, 8, 'original endpoint cache still exists');
+    } finally { globalThis.fetch = original; }
+  }));
+});
+
+test('page refresh changes only the selected clip, preserves old version, and sends no seed', async () => {
+  await withEnv({ OPENAI_TTS_BASE_URL: 'https://speech.example/v1', OPENAI_TTS_API_KEY: 'unit-token' }, () => withTempProject(async ({ project, story }) => {
+    const original = globalThis.fetch, record = [];
+    globalThis.fetch = mockFetch(record, { voicesStatus: 404 });
+    try {
+      const first = await prepare({ project, generate: true, name: 'original' });
+      const old = await fs.readFile(path.join(story, 'audio/original/page-02.wav'));
+      globalThis.fetch = async (url, options = {}) => {
+        record.push({ url: String(url), options });
+        return String(url).endsWith('/voices') ? new Response('', { status: 404 }) : new Response(wav(9600, true));
+      };
+      const refreshed = await prepare({ project, generate: true, name: 'refreshed', 'refresh-page': ['page-02'] });
+      assert.equal(speechRequests(record).length, 5);
+      assert.ok(!('seed' in JSON.parse(speechRequests(record).at(-1).options.body)));
+      for (const clip of first.timeline.clips) {
+        const next = refreshed.timeline.clips.find(item => item.id === clip.id);
+        if (clip.id === 'page-02') assert.notEqual(next.sha256, clip.sha256);
+        else assert.equal(next.sha256, clip.sha256);
+      }
+      assert.deepEqual(await fs.readFile(path.join(story, 'audio/original/page-02.wav')), old);
+      await prepare({ project, generate: true, name: 'reused' });
+      assert.equal(speechRequests(record).length, 5);
+      await assert.rejects(prepare({ project, generate: true, name: 'invalid', 'refresh-page': ['page-99'] }), /names no page/);
+      assert.equal(speechRequests(record).length, 5);
+      assert.deepEqual(parseNarrateArgs(['--refresh-page', 'cover', '--refresh-page', 'back'])['refresh-page'], ['cover', 'back']);
+    } finally { globalThis.fetch = original; }
+  }));
+});
+
+
+test('refreshing repeated text on one page does not replace another page take', async () => {
+  await withEnv({ OPENAI_TTS_BASE_URL: 'https://speech.example/v1', OPENAI_TTS_API_KEY: 'unit-token' }, () => withTempProject(async ({ project, story }) => {
+    const repeated = structuredClone(book);
+    repeated.sheets[1].back.text = repeated.sheets[0].front.text;
+    await fs.writeFile(path.join(story, 'content.js'), 'export const bookContent = ' + JSON.stringify(repeated) + ';');
+    const original = globalThis.fetch, record = [];
+    globalThis.fetch = mockFetch(record, { voicesStatus: 404 });
+    try {
+      const first = await prepare({ project, generate: true, name: 'same-text' });
+      globalThis.fetch = async (url, options = {}) => {
+        record.push({ url: String(url), options });
+        return String(url).endsWith('/voices') ? new Response('', { status: 404 }) : new Response(wav(9600, true));
+      };
+      const second = await prepare({ project, generate: true, name: 'cover-retake', 'refresh-page': ['cover'] });
+      assert.equal(speechRequests(record).length, 5);
+      assert.notEqual(first.timeline.clips[0].sha256, second.timeline.clips[0].sha256);
+      assert.equal(first.timeline.clips.at(-1).sha256, second.timeline.clips.at(-1).sha256);
+    } finally { globalThis.fetch = original; }
+  }));
 });

@@ -6,7 +6,7 @@
 //   node skills/children-storybook/scripts/narrate.mjs --name red-audio-v1      # generate every page
 //   node skills/children-storybook/scripts/narrate.mjs --name v2 --voice narrator --speed 0.9
 //   node skills/children-storybook/scripts/narrate.mjs --name v2 --install --video
-//   node skills/children-storybook/scripts/narrate.mjs --name v3 --page-seed page-14=7   # re-record one page
+//   node skills/children-storybook/scripts/narrate.mjs --name v3 --refresh-page page-14   # request one page again
 //   node skills/children-storybook/scripts/narrate.mjs --name v3 --disclosure "AI narration (ElevenLabs)"
 //
 // There is one TTS interface — the OpenAI speech API. A local MOSS-TTS server (the separate
@@ -19,7 +19,7 @@ import { exportVideo } from './export_video.mjs';
 import { resolveProject, loadEnvLocal, isMain } from './project.mjs';
 
 const BOOLEAN_FLAGS=['check','install','video','plan','allow-test-audio','allow-fallback-voice'];
-const REPEATABLE_FLAGS=['page-seed'];
+const REPEATABLE_FLAGS=['page-seed','refresh-page'];
 export function parseArgs(args){
   const result={};
   for(let i=0;i<args.length;i++){
@@ -42,15 +42,16 @@ export function parseArgs(args){
 // work against any OpenAI-compatible endpoint.
 export async function checkTts(options={}){
   const tts=resolveTts();
-  const problems=[];
-  const status={base:tts.base,source:tts.source,key:Boolean(tts.key),reachable:false,models:null,voices:null,zeroConfig:null,voice:process.env.OPENAI_TTS_VOICE||null,fingerprint:null,refAudio:null,refAudioOk:null,ffmpeg:null};
+  const problems=[],warnings=[];
+  const status={base:tts.base,source:tts.source,key:Boolean(tts.key),reachable:false,models:null,voices:null,zeroConfig:null,voice:process.env.OPENAI_TTS_VOICE||'marin',fingerprint:null,refAudio:null,refAudioOk:null,ffmpeg:null};
   const headers=tts.key?{Authorization:`Bearer ${tts.key}`}:{};
   try{
     const response=await fetch(tts.models,{headers,signal:AbortSignal.timeout(5000)});
     status.reachable=true;
     if(response.ok){const body=await response.json().catch(()=>null);status.models=(body?.data||[]).map(model=>model?.id).filter(Boolean);}
     else if(response.status===401||response.status===403)problems.push(`The endpoint rejected the credential (HTTP ${response.status}) at ${tts.models}.`);
-    else problems.push(`GET ${tts.models} returned HTTP ${response.status}; the endpoint may not implement /v1/models.`);
+    else if([404,405,501].includes(response.status))warnings.push(`GET ${tts.models} is unsupported (HTTP ${response.status}); speech capability is unverified until generation.`);
+    else problems.push(`GET ${tts.models} returned HTTP ${response.status}.`);
   }catch(error){
     problems.push(`Could not reach ${tts.models}: ${error.message}. Is the endpoint running?`);
   }
@@ -77,21 +78,21 @@ export async function checkTts(options={}){
   // the user says the fallback is acceptable. A preset with no reference audio at all (a
   // zero-config `default`) reports ref_audio_ok: false too, and is not a downgrade.
   if(status.refAudio&&status.refAudioOk===false&&!options.allowFallbackVoice){
-    problems.push(`The endpoint reports ref_audio_ok: false for voice "${status.voice}" (ref_audio: ${status.refAudio}); it fell back to its base voice, so the clips would not be the voice you asked for. Fix the reference WAV in the server's voices/, or rerun with --allow-fallback-voice to accept the fallback.`);
+    problems.push(`The endpoint reports ref_audio_ok: false for voice "${status.voice}" (ref_audio: ${status.refAudio}); it fell back to its base voice, so the clips would not be the voice you asked for. Fix the endpoint's voice configuration, or rerun with --allow-fallback-voice to accept the fallback.`);
   }
   const ff=spawnSync(process.env.FFMPEG_PATH||'ffmpeg',['-version'],{encoding:'utf8'});
   status.ffmpeg=ff.status===0?ff.stdout.split('\n')[0]:null;
-  if(ff.status!==0)problems.push('ffmpeg not found (needed for MP4 export and for normalizing non-48 kHz TTS responses). brew install ffmpeg');
-  return {ok:problems.length===0,problems,status};
+  if(ff.status!==0)problems.push('ffmpeg not found (needed for MP4 export and for normalizing non-48 kHz TTS responses). Install ffmpeg or set FFMPEG_PATH');
+  return {ok:problems.length===0,problems,warnings,status};
 }
 
 function printCheck(result){
-  const {status,problems}=result;
+  const {status,problems,warnings=[]}=result;
   const mark=value=>value?'✔':'✖';
   console.log(`${mark(status.reachable)} endpoint   ${status.base}   (from ${status.source})`);
   console.log(`${mark(status.key)} key        ${status.key?'set':'(not set)'}`);
   console.log(`${mark(status.models?.length)} models     ${status.models?.length?status.models.join(', '):'(none reported)'}`);
-  console.log(`${mark(status.voices?.length)} voices     ${status.voices?.length?status.voices.join(', '):'(endpoint has no /v1/voices; the voice preset carries the tuning)'}`);
+  console.log(`${mark(status.voices?.length)} voices     ${status.voices?.length?status.voices.join(', '):'(optional voice metadata unavailable)'}`);
   if(status.voice&&status.fingerprint)console.log(`${mark(true)} fingerprint ${status.voice} → ${status.fingerprint}`);
   if(status.refAudio){
     const fallback=status.refAudioOk===false?'   (ref_audio_ok: false — the server fell back to its base voice)':'';
@@ -99,7 +100,8 @@ function printCheck(result){
   }
   console.log(`${mark(status.ffmpeg)} ffmpeg     ${status.ffmpeg||'(not found)'}`);
   for(const problem of problems)console.log(`  ! ${problem}`);
-  console.log(result.ok?'The TTS endpoint is ready.':'The TTS endpoint is NOT ready.');
+  for(const warning of warnings)console.log(`  ? ${warning}`);
+  console.log(result.ok?'Preflight passed; speech output still requires generation and listening.':'Preflight failed.');
 }
 
 function slugFromDate(prefix){const d=new Date(),p=n=>String(n).padStart(2,'0');return `${prefix}-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;}
@@ -108,21 +110,22 @@ export async function narrate(options){
   const project=resolveProject(options.project);
   loadEnvLocal(project);
   // CLI overrides flow to prepare_narration.mjs through the same env vars .env.local uses.
-  // Only OpenAI fields are accepted here; tuning lives in the endpoint's voice presets.
+  // Standard speech fields are the default; seed is an explicit optional extension.
   if(options.voice)process.env.OPENAI_TTS_VOICE=options.voice;
   if(options.speed!==undefined)process.env.OPENAI_TTS_SPEED=String(options.speed);
   if(options.model)process.env.OPENAI_TTS_MODEL=options.model;
   if(options.disclosure)process.env.OPENAI_TTS_DISCLOSURE=options.disclosure;
 
+  if(options.plan&&(options.check||options.install||options.video))throw new Error('--plan cannot be combined with --check, --install or --video.');
+  if(options.plan){await prepare({project,story:options.story,plan:true,seed:options.seed,'page-seed':options['page-seed'],'refresh-page':options['refresh-page'],disclosure:options.disclosure});return {planned:true};}
+
   const check=await checkTts({allowFallbackVoice:Boolean(options['allow-fallback-voice'])});
   if(options.check){printCheck(check);return {ok:check.ok,check};}
   if(!check.ok){printCheck(check);throw new Error('Fix the items above, then rerun. Nothing was generated.');}
 
-  if(options.plan){await prepare({project,plan:true,seed:options.seed,'page-seed':options['page-seed'],disclosure:options.disclosure});return {planned:true};}
-
   const name=options.name||slugFromDate('audio');
   const started=Date.now();
-  const {destination,timeline}=await prepare({project,generate:true,name,install:Boolean(options.install),seed:options.seed,'page-seed':options['page-seed'],disclosure:options.disclosure});
+  const {destination,timeline}=await prepare({project,story:options.story,generate:true,name,install:Boolean(options.install),seed:options.seed,'page-seed':options['page-seed'],'refresh-page':options['refresh-page'],disclosure:options.disclosure});
   const rel=path.relative(project,destination);
   console.log('\nClips (listen to every one before delivering):');
   for(const segment of timeline.segments.filter(s=>s.kind==='narration')){
@@ -138,7 +141,7 @@ export async function narrate(options){
   console.log(options.install?`Installed: stories/<id>/narration.js now points at ${rel}/timeline.json`:`Not installed. To use in the app: rerun with --install, or edit stories/<id>/narration.js`);
   let video=null;
   if(options.video){
-    video=await exportVideo({project,timeline:path.join(destination,'timeline.json'),output:options.output});
+    video=await exportVideo({project,story:options.story,timeline:path.join(destination,'timeline.json'),output:options.output,'publish-copy':options['publish-copy']});
     console.log(`Video: ${path.relative(project,video.output)} (${video.videoDuration.toFixed(2)}s, ${video.frames} frames)`);
   }
   return {destination,timeline,video};

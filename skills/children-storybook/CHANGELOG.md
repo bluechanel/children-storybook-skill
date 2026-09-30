@@ -25,6 +25,29 @@ version it is.
 Bumping `VERSION` and adding the entry here are part of the change, not a follow-up. The
 `tests/script-entry.test.mjs` suite fails if `VERSION` and the newest heading disagree.
 
+## [1.3.0] — 2026-09-30
+
+- Complete the normal MP4 skill workflow with a local publishing kit: 9:16, 16:9 and 3:4 covers, plus distinct titles, tags and short descriptions for 抖音、小红书 and B 站.
+- Add dependency-free `publish_bundle.mjs`, composing existing original art with agent-written copy through the bundled Chromium driver. Include editable layouts, structured/copy-ready metadata and a bounded combined preview with automated layout checks.
+- Add `--publish-copy` to the exporter and narration wrapper; run composition only after MP4 validation, preserve successful video on kit failure, and support independent retries and new kit versions.
+- Keep publishing assets story-local, reject fixture/stale video input, and record video/art/copy hashes. Add a video hash to export reports. No account access, upload or paid generation is introduced.
+
+## [1.2.0] — 2026-09-30
+
+- Replace exhaustive image inspection with one sampled thumbnail sheet. Trust image generation, accept approximate character/style consistency and avoid minor-detail correction loops.
+- Add `preview_art.py`: local ffmpeg sampling of up to four images, one JPEG capped at 960×640 and 250,000 bytes, story-local output and text-only tool results.
+- Keep original artwork out of agent context, including base64 and embedded-image SVG text. Preserve full-quality inputs for generation, composition and export.
+- Align art, layout and delivery guidance with sampled visual review while retaining automated loading/navigation checks. No per-reference visual approval gate.
+
+## [1.1.0] — 2026-09-30
+
+- Wait for image reference dependencies before launching pages with concurrent workers; block dependants of failed references and reject dependency cycles before generation.
+- Track image input/output provenance, report stale or manually modified assets, and add selective `--refresh-stale`. Preserve overwritten artwork and provenance in story-local backups.
+- Isolate TTS cache entries by normalized speech endpoint, request and optional voice fingerprint. Legacy entries remain on disk but are not reused because their endpoint is unknown; the first v2 run generates fresh clips.
+- Make `narrate --plan` offline, treat unsupported metadata routes as inconclusive preflight warnings, and add repeatable `--refresh-page` for standard-body single-page retakes. Seed flags remain optional endpoint extensions.
+- Route the skill by requested task, remove stale scaffold requirements and host-specific substitution examples, and separate endpoint operation from the portable story pipeline.
+- Add offline regression coverage for dependency scheduling, provenance refresh/backup, endpoint isolation, planning and selective speech refresh.
+
 ## [1.0.0] — 2026-09-28
 
 First stamped release. Everything before this was unversioned, so this entry records the whole

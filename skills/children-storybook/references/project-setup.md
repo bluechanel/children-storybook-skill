@@ -78,15 +78,6 @@ They find the **project root** in this order:
 configure the skill with a name that is obviously ours. Running from the project root needs
 neither variable.
 
-Two Claude Code details are worth knowing, because they explain why the docs are written the
-way they are:
-
-- `CLAUDE_PROJECT_DIR` is genuinely exported into the Bash environment.
-- `CLAUDE_SKILL_DIR` is **not** a variable. Claude Code substitutes `${CLAUDE_SKILL_DIR}` into
-  `SKILL.md` *text* as it renders the prompt. A script can therefore never read it, and any
-  other agent would see the literal string — which is exactly why the commands in this skill
-  use a plain `$SKILL` defined in the session instead.
-
 To find out what actually resolved, run:
 
 ```bash
@@ -124,7 +115,7 @@ The verified arrangement is a symlink:
 ```bash
 # In the project root. The skill keeps its single source of truth elsewhere.
 mkdir -p skills
-ln -s ~/.claude/skills/children-storybook skills/children-storybook
+ln -s "$SKILL" skills/children-storybook
 ```
 
 A copy works too, at the cost of drifting from the original. Either way the import specifier in
@@ -145,11 +136,10 @@ note the app's own import still has to be changed to match:
 ```js
 // vite.config.js
 import path from 'node:path';
-import { homedir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 import { defineConfig } from 'vite';
 
-const skill = process.env.CHILDREN_STORYBOOK_SKILL || path.join(homedir(), '.claude/skills/children-storybook');
+const skill = process.env.CHILDREN_STORYBOOK_SKILL || path.resolve('skills/children-storybook');
 const { storyAssets } = await import(pathToFileURL(path.join(skill, 'scripts/story-assets.mjs')).href);
 
 export default defineConfig({ plugins: [storyAssets(process.cwd())] });
@@ -178,29 +168,16 @@ else. `qa_browser.mjs` needs the same `bookDemo.ready`.
 
 ## Optional local TTS
 
-The skill needs only an endpoint, so this is the *operator's* business, not the skill's. For
-offline narration there is a separate project, `moss-tts` (a sibling directory by default), which
-serves MOSS-TTS behind the same OpenAI contract:
+A separately managed local service can expose the same OpenAI-compatible speech interface.
+Set `OPENAI_TTS_BASE_URL` and `OPENAI_TTS_API_KEY` to that service and select its supported
+`voice`. This skill does not install models, configure server-side voice presets or require
+another project’s files. See the service’s own documentation for those operations.
 
-```text
-moss-tts/server.py          OpenAI-compatible FastAPI service (`.venv/bin/python server.py`)
-moss-tts/voices.json        voice presets: name -> reference WAV, language, seed, sampling
-moss-tts/main.py            the MLX inference CLI and the standalone batch entry point
-moss-tts/models/...         the language model and the audio codec, ~9 GB, gitignored
-moss-tts/voices/            reference WAVs for zero-shot voice cloning, gitignored
-```
-
-Point `OPENAI_TTS_BASE_URL` at `http://127.0.0.1:8123/v1` and every narration command works
-unchanged. Nothing in this project imports those paths, so the skill installs and runs without
-them. `narrate.mjs --check` reports whether the endpoint answers, whether the credential was
-accepted and whether ffmpeg is present; that server's own `/health` reports the model and codec
-paths. Apple Silicon only, and worth asking before downloading ~9 GB of models.
-
-Without a reachable endpoint, use any OpenAI-compatible host, or validate the pipeline with
-`narration:fixture` test tones and say plainly that no speech was produced.
+Without a reachable endpoint, prepare an offline narration plan or validate the pipeline with
+labeled fixture tones. `--check` can inspect optional metadata but only a speech request and
+listening can validate actual output.
 
 ## Platform notes
 
-macOS and Linux are supported: `install.sh`, `${VAR:-default}` expansion and the `$HOME` paths
-are POSIX. Windows is untested — set `$env:CHILDREN_STORYBOOK_PROJECT`, pass `--project` explicitly, and
+The command examples use POSIX shell syntax on macOS and Linux. Windows is untested — set `$env:CHILDREN_STORYBOOK_PROJECT`, pass `--project` explicitly, and
 invoke the scripts by absolute path.

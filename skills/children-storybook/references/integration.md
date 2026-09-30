@@ -59,13 +59,13 @@ python3 $SKILL/scripts/build_book.py \
 
 A story deliberately kept outside `<stories>/<id>/` is refused unless you name the project or the folder with `--project` or `--story-dir`. The default rule is kept strict because the app, the Vite plugin and the tests all depend on it.
 
-Render the composed pages to PNG for a visual check of every spread, including page backs:
+Render composed pages to disk when layout sampling is useful; do not load every screenshot into the agent context:
 
 ```bash
 node $SKILL/scripts/shot_pages.mjs --project "$PROJECT" --story <id>
 ```
 
-Pages are discovered on disk, so this works for any spread count, and the PNGs land in the story's `qa/pages/`.
+Pages are discovered on disk and the PNGs land in the story's `qa/pages/`. Run `python3 "$SKILL/scripts/preview_art.py" --story "$PROJECT/stories/<id>" --source qa/pages` to view one small sampled sheet instead of the full screenshots. Never read composed SVGs as text into context: they embed base64 artwork.
 
 A still page document shows the layout; the book itself needs the reader. This serves it without an app, a dev server or a bundler:
 
@@ -77,4 +77,4 @@ It prints a URL and stays up until interrupted. Use it to check page order and t
 
 Select the story via `src/active-story.js`, re-exporting both its content.js and narration.js. The Vite story-assets plugin serves `/stories/<id>/pages/v1/*.svg` directly and copies resources only when building dist. Do not copy story content into public/.
 
-Run `npm run build` and meaningful interaction checks. Visually review all spreads, page backs, and the two landscape viewports. A valid manifest or successful build alone does not prove readable English or good illustration quality.
+Run `npm run build` and meaningful interaction checks. Read automated results for page loading and navigation at both landscape viewports. Keep visual review sampled; check a targeted small screenshot only for a concrete layout issue. Trust generated artwork when its overall style and characters are broadly consistent; do not perform a second page-by-page art audit.

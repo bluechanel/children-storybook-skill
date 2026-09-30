@@ -102,10 +102,11 @@ storyboard first, then transcribe it into `scenes.md`.
 
 ## Iterating
 
-Inspect every generated image before moving on. When one is wrong, fix **that one prompt** and
-regenerate only that asset; `gen_art.py` skips images that already exist. Character drift,
-extra limbs, unwanted lettering, a wrong action, or anything off-brief are all grounds to
-redo a single page. Reusing the same reference sheets is what keeps the rest consistent.
+Trust the image API and accept approximate character/style consistency. Use the single
+sampled thumbnail sheet described in [art-pipeline.md](art-pipeline.md); do not inspect
+all images, load originals into context or iterate on minor details. Only a user-reported
+problem or an obvious major mismatch in the sample warrants a targeted thumbnail and
+possible correction of that one prompt/asset. Keep the other generated artwork intact.
 
 A refused or moderated request comes back as HTTP 400 with no image. That is not a transient
 failure — `gen_art.py` fails fast rather than retrying, and the fix is to change that prompt.

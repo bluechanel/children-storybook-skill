@@ -16,6 +16,7 @@ import { serveStory } from './static-server.mjs';
 import { openBrowser, pngSize } from './cdp.mjs';
 import { validateTimeline } from './media-core.mjs';
 import { pcmData } from './prepare_narration.mjs';
+import { publishBundle, readPublishingCopy, sha256 } from './publish_bundle.mjs';
 
 async function waitFor(page, expression, timeoutMs, label) {
   const deadline = Date.now() + timeoutMs;
@@ -38,6 +39,10 @@ export async function exportVideo(options) {
   validateTimeline(timeline,bookContent);
   if(!['ready','fixture'].includes(timeline.mode))throw new Error('Timeline is not ready.');
   if(timeline.mode==='fixture'&&!options['allow-test-audio'])throw new Error('Test tones are not narration. Use --allow-test-audio only for pipeline verification.');
+  if(options['publish-copy']){
+    if(timeline.mode!=='ready')throw new Error('Test tones cannot produce a publishing kit.');
+    await readPublishingCopy(story,options['publish-copy']);
+  }
   if(timeline.audioFile!=='master.wav')throw new Error('Expected the local master.wav next to the timeline.');
   const audioPath=path.join(path.dirname(timelinePath),'master.wav'), audio=await fs.readFile(audioPath);
   if(pcmData(audio).length/2!==timeline.totalSamples || crypto.createHash('sha256').update(audio).digest('hex')!==timeline.audioSha256)throw new Error('Master audio is changed/truncated; rebuild narration.');
@@ -116,10 +121,21 @@ export async function exportVideo(options) {
       browser:{product:browser.product,protocolVersion:browser.protocolVersion,executable:browser.executable,software:browser.software,webgl:browser.webgl},
       fonts:{arialRoundedMTBold:fontAvailable},
       // Same input twice must give the same bytes; compare this across runs.
-      frameDigestSha256:digest.digest('hex')};
+      frameDigestSha256:digest.digest('hex'),videoSha256:await sha256(output)};
     await fs.writeFile(output+'.json',JSON.stringify(report,null,2));
     if(!fontAvailable)console.warn('Warning: "Arial Rounded MT Bold" is not installed; the page text used a fallback face and may differ from other machines.');
-    console.log(`Exported ${output}`);return report;
+    console.log(`Exported ${output}`);
+    if(options['publish-copy']){
+      try{
+        report.publishing={status:'generated',...await publishBundle({project,story:story.id,video:output,copy:options['publish-copy'],chrome:options.chrome})};
+      }catch(error){
+        report.publishing={status:'failed',error:error.message};
+        await fs.writeFile(output+'.json',JSON.stringify(report,null,2));
+        throw new Error(`MP4 export succeeded: ${output}. Publishing kit failed: ${error.message} Retry publish_bundle.mjs --video with this MP4 and --copy; do not render the video again.`);
+      }
+      await fs.writeFile(output+'.json',JSON.stringify(report,null,2));
+    }
+    return report;
   }finally{
     rendering=false;
     process.removeAllListeners('SIGINT');
@@ -129,6 +145,16 @@ export async function exportVideo(options) {
 }
 if(isMain(import.meta.url)){
  const options={};
- for(let i=2;i<process.argv.length;i++){const key=process.argv[i].replace(/^--/,'');if(key==='allow-test-audio')options[key]=true;else options[key]=process.argv[++i];}
- exportVideo(options).catch(error=>{console.error(error.message);process.exitCode=1;});
+ try{
+  for(let i=2;i<process.argv.length;i++){
+   if(!process.argv[i].startsWith('--'))throw new Error(`Unexpected argument: ${process.argv[i]}`);
+   const key=process.argv[i].slice(2);
+   if(key==='allow-test-audio')options[key]=true;
+   else{
+    if(!process.argv[i+1]||process.argv[i+1].startsWith('--'))throw new Error(`Missing value: --${key}`);
+    options[key]=process.argv[++i];
+   }
+  }
+  await exportVideo(options);
+ }catch(error){console.error(error.message);process.exitCode=1;}
 }

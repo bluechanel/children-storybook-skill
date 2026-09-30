@@ -22,7 +22,7 @@ export const FIXTURE_DISCLOSURE = 'Timing test · tones, not narration';
 // the same level: a page 6 dB under its neighbours is a property of this pipeline, not bad
 // luck. Clips are measured and scaled toward one speech level before assembly.
 export const LOUDNESS = Object.freeze({ targetRms: 0.1, peakCeiling: 0.891, gate: 0.00316, minGainDb: -12, maxGainDb: 12 });
-const REPEATABLE = new Set(['page-seed']);
+const REPEATABLE = new Set(['page-seed','refresh-page']);
 
 export function parseArgs(args) {
   const result={};
@@ -106,8 +106,8 @@ export function resolveTts(){
   const raw=String(explicit||inherited||DEFAULT_TTS_BASE).trim();
   let url;try{url=new URL(raw);}catch{throw new Error(`TTS base URL is not a valid URL: ${raw}`);}
   if(url.protocol!=='http:'&&url.protocol!=='https:')throw new Error(`TTS base URL must be http(s): ${raw}`);
-  let base=raw.replace(/\/+$/,'');
-  if(url.pathname===''||url.pathname==='/')base=`${base}/v1`;
+  url.pathname=url.pathname.replace(/\/+$/,'')||'/v1';
+  const base=url.href.replace(/\/+$/,'');
   return {
     base,endpoint:`${base}/audio/speech`,models:`${base}/models`,voices:`${base}/voices`,
     key:process.env.OPENAI_TTS_API_KEY||process.env.OPENAI_API_KEY||'',
@@ -115,7 +115,7 @@ export function resolveTts(){
   };
 }
 // Best-effort: the official API has no /v1/voices route, so any failure simply means "no
-// fingerprint" and the cache falls back to the request hash alone.
+// fingerprint" and the cache still includes the endpoint and request body.
 export async function voiceFingerprint(tts,voice){
   if(!voice)return null;
   try{
@@ -126,9 +126,8 @@ export async function voiceFingerprint(tts,voice){
     return typeof match?.fingerprint==='string'&&match.fingerprint?match.fingerprint:null;
   }catch{return null;}
 }
-// A request-level seed is the supported way to re-record one page. The server's preset seed
-// cannot do it: it is part of the preset fingerprint, so changing it invalidates all of the
-// clips at once, and deleting a cache file re-runs a deterministic server into the same bytes.
+// Optional endpoint extension. Use refresh-page for a standard-body re-request; seed
+// is sent only when explicitly supplied and requires endpoint support.
 export function pageSeeds(options,pages){
   const ids=new Set(pages.map(page=>page.id));
   const perPage=new Map();
@@ -163,11 +162,11 @@ export async function prepare(options) {
   const normalize=!options['no-normalize']&&process.env.OPENAI_TTS_NORMALIZE!=='0';
   const disclosure=resolveDisclosure(options.disclosure??process.env.OPENAI_TTS_DISCLOSURE??DEFAULT_DISCLOSURE);
   const seeds=pageSeeds(options,pages);
-  // The body stays exactly the OpenAI schema. A local MOSS-TTS server accepts extra tuning
-  // fields, but this pipeline deliberately sends none unless asked: it must work against any
-  // OpenAI-compatible endpoint, and the voice preset carries the tuning instead. An explicit
-  // seed is the one exception — it is how a single page is re-recorded, because the body is
-  // what the cache hashes, so seeding one page invalidates that page and nothing else.
+  const refreshPages=new Set([].concat(options['refresh-page']||[]));
+  for(const id of refreshPages){
+    if(!pages.some(page=>page.id===id))throw new Error(`--refresh-page names no page in this book: "${id}".`);
+  }
+  // Refreshing bypasses the local cache without adding an API extension.
   const requests=pages.map(page=>{
     if(page.text.length>4096)throw new Error(`${page.id} exceeds TTS input limit.`);
     const body={model:config.model,voice:config.voice,input:page.text,response_format:'wav',speed:config.speed};
@@ -183,7 +182,7 @@ export async function prepare(options) {
   // A --plan run never inspects credentials or makes network requests.
   if(mode==='plan'){
     await fs.mkdir(output,{recursive:true});
-    await fs.writeFile(path.join(output,'requests.json'),JSON.stringify({status:'planned',provider:'openai-compatible',endpoint:tts.base,...config,presetFingerprint:null,seeds:seedRecord,disclosure,requests},null,2));
+    await fs.writeFile(path.join(output,'requests.json'),JSON.stringify({status:'planned',provider:'openai-compatible',endpoint:tts.base,...config,presetFingerprint:null,seeds:seedRecord,refreshPages:[...refreshPages],disclosure,requests},null,2));
     console.log(`Planned ${requests.length} clips for ${tts.endpoint}. No API calls. Configure .env.local, then run narration:generate.`);
     return {status:'planned'};
   }
@@ -200,7 +199,9 @@ export async function prepare(options) {
   // FILENAME (never the body) makes any change to what actually drives synthesis — including
   // swapping the reference WAV — produce a cache miss.
   const presetFingerprint=mode==='tts'?await voiceFingerprint(tts,config.voice):null;
-  const cachePath=request=>path.join(cache,`${request.hash}${presetFingerprint?`.${presetFingerprint}`:''}.wav`);
+  // Page identity isolates retakes of repeated text on different pages.
+  // v2 deliberately does not reuse legacy cache files: their endpoint is unknown.
+  const cachePath=request=>path.join(cache,`v2-${crypto.createHash('sha256').update(JSON.stringify({endpoint:tts.endpoint,pageId:request.id,body:request.body,presetFingerprint})).digest('hex')}.wav`);
   try{
     const clips=[],levels=[];
     for(let i=0;i<requests.length;i++){
@@ -210,7 +211,7 @@ export async function prepare(options) {
       else {
         const cached=cachePath(request);
         let bytes;
-        try{bytes=await fs.readFile(cached);pcmData(bytes);}catch{
+        try{if(refreshPages.has(request.id))throw new Error('Explicit page refresh');bytes=await fs.readFile(cached);pcmData(bytes);}catch{
           console.log(`Generating ${request.id}…`);
           // No key in the URL, browser code, logs or saved metadata.
           let response;
@@ -244,14 +245,14 @@ export async function prepare(options) {
     const timeline=makeTimeline(book,clips);
     const real=mode!=='fixture';
     const targetRmsDb=Number((20*Math.log10(LOUDNESS.targetRms)).toFixed(2)), peakCeilingDb=Number((20*Math.log10(LOUDNESS.peakCeiling)).toFixed(2));
-    Object.assign(timeline,{mode:real?'ready':'fixture',audioFile:'master.wav',audioUrl:storyUrl(story,path.join(destination,'master.wav')),disclosure:real?disclosure:FIXTURE_DISCLOSURE,loudness:{enabled:real&&normalize,targetRmsDb,peakCeilingDb,clips:levels},tts:real?{provider:'openai-compatible',endpoint:tts.base,...config,presetFingerprint,seeds:seedRecord}:null,clips});
+    Object.assign(timeline,{mode:real?'ready':'fixture',audioFile:'master.wav',audioUrl:storyUrl(story,path.join(destination,'master.wav')),disclosure:real?disclosure:FIXTURE_DISCLOSURE,loudness:{enabled:real&&normalize,targetRmsDb,peakCeilingDb,clips:levels},tts:real?{provider:'openai-compatible',endpoint:tts.base,...config,presetFingerprint,seeds:seedRecord,refreshPages:[...refreshPages]}:null,clips});
     validateTimeline(timeline,book);
     const master=wav(timeline.totalSamples);let offset=44;
     for(const segment of timeline.segments){if(segment.kind==='narration')pcmData(await fs.readFile(path.join(staging,segment.file))).copy(master,offset);offset+=segment.samples*2;}
     timeline.audioSha256=crypto.createHash('sha256').update(master).digest('hex');
     await fs.writeFile(path.join(staging,'master.wav'),master);
     await fs.writeFile(path.join(staging,'timeline.json'),JSON.stringify(timeline,null,2));
-    await fs.writeFile(path.join(staging,'requests.json'),JSON.stringify({provider:'openai-compatible',endpoint:tts.base,...config,presetFingerprint,seeds:seedRecord,disclosure,loudness:timeline.loudness,requests},null,2));
+    await fs.writeFile(path.join(staging,'requests.json'),JSON.stringify({provider:'openai-compatible',endpoint:tts.base,...config,presetFingerprint,seeds:seedRecord,refreshPages:[...refreshPages],disclosure,loudness:timeline.loudness,requests},null,2));
     await fs.rename(staging,destination);
     if(options.install){
       const configFile=path.join(story.root,'narration.js');

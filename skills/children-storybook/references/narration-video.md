@@ -2,7 +2,7 @@
 
 Use this workflow when narration/video is requested. If the user says to reserve the TTS interface for later configuration, implement/configure the plan only; do not use an available key to make live calls. Never substitute another provider or system voice silently.
 
-Read [story-layout.md](story-layout.md) first. All commands below operate on the story selected in src/active-story.js.
+Read [story-layout.md](story-layout.md) first. Select a story with `--story <id>`, or use the active/sole story resolved from the project.
 
 > **No npm install is needed.** The narration builder and the exporter need only node,
 > python3, ffmpeg/ffprobe and a Chromium-based browser. The reader ships prebuilt as
@@ -10,7 +10,7 @@ Read [story-layout.md](story-layout.md) first. All commands below operate on the
 > are captured over the DevTools Protocol (`cdp.mjs`) — there is no Vite and no Playwright in
 > this path. See [project-setup.md](project-setup.md).
 >
-> All of these resolve `--project`, then `$PROJECT`, then the working directory, and
+> All of these resolve `--project`, then `$CHILDREN_STORYBOOK_PROJECT`, then `$CLAUDE_PROJECT_DIR`, then the working directory, and
 > read `.env.local` from there, so they work installed globally and invoked by absolute path.
 > The story is read from its own `content.js`; `src/active-story.js` is consulted only to learn
 > which story is active.
@@ -19,7 +19,7 @@ Read [story-layout.md](story-layout.md) first. All commands below operate on the
 
 - TTS (single interface): the local Node script calls `POST {base}/audio/speech` with the OpenAI schema — `model`, `voice`, `input`, `response_format: 'wav'`, `speed`, and `instructions` for non-legacy models. Defaults `gpt-4o-mini-tts`, `marin`, speed 0.9. Read exact page text, including cover and ending.
 - Endpoint: `OPENAI_TTS_BASE_URL` → `OPENAI_BASE_URL` → `https://api.openai.com/v1`. Credential: `OPENAI_TTS_API_KEY` → `OPENAI_API_KEY`. The TTS variables are deliberately separate because `OPENAI_BASE_URL` is the *Images* base used by `gen_art.py` — repointing it would silently redirect image generation too. A bare host is completed for you (`http://127.0.0.1:8123` → `…/v1`).
-- TTS (local, offline): `moss-tts` — a **separate project**, not part of the host — serves the same OpenAI contract on `127.0.0.1:8123` in front of MOSS-TTS (mlx-audio, Apple Silicon). Point `OPENAI_TTS_BASE_URL` at it; nothing in this skill knows about MLX, model paths or voices, and no credentials or network are needed. Voice tuning — a reference WAV for zero-shot cloning, language, seed, sampling — lives in that server's `voices.json`, selected by the OpenAI `voice` field. See that project's README.
+- Local/offline TTS uses the same interface. Model installation, voice tuning and reference-audio management belong to the endpoint operator, outside this skill.
 - Current API schema: [Create speech](https://developers.openai.com/api/reference/resources/audio/subresources/speech/methods/create), [Text to speech](https://developers.openai.com/api/docs/guides/text-to-speech). Verified 2026-09-15; recheck if the provider rejects a model/parameter. Instructions are omitted for tts-1/tts-1-hd.
 - Store credentials only in process environment or root `.env.local`. Never use `VITE_OPENAI_API_KEY`, browser requests, public assets, saved prompts, or logs for credentials.
 - Clearly disclose AI-generated narration when enabled, including in exported video. The reader has a small AI badge; the export carries a footer caption, the same string as the MP4 `comment` metadata and in `<video>.mp4.json`. **The default is a real disclosure — `AI-generated narration (synthetic voice)` — and it is configurable**: pass `--disclosure "<wording>"` or set `OPENAI_TTS_DISCLOSURE` when a publisher or platform requires different words. Never set it to a brand, studio or product name: the exported file leaves this machine, and the thing a viewer needs to know is that the voice was synthesized. Fixture audio is the one exception — it keeps the fixed label `Timing test · tones, not narration`, because that label exists to stop tones being mistaken for narration. This follows the official TTS guide and is not part of the narrated story text.
@@ -35,15 +35,15 @@ Scripts live in `scripts/` inside this skill, wherever it is installed:
 - `media-core.mjs`: page ordering, content fingerprint, sample-based timeline, validation and absolute-time book poses. Shared by the app and both CLIs.
 - `narrate.mjs`: one-shot front door: endpoint check, generate, print clip summary, optional install and MP4 export.
 - `prepare_narration.mjs`: plan requests, explicitly generate TTS over the OpenAI speech API, normalize/measure clips, assemble master WAV, cache requests, optionally install audio. Exports `resolveTts()` (endpoint/credential resolution) and `voiceFingerprint()` (the preset-hash lookup described below).
-- `export_video.mjs`: validate assets/timeline, start isolated local Vite preview, await images/fonts, render frames, encode and verify MP4.
+- `export_video.mjs`: validate assets/timeline, start the bundled static reader, await images/fonts, render frames, encode and verify MP4.
 - `verify_fixture_audio.mjs`: decode the exported fixture and check that tone slots are audible and gaps/turns are silent; never treats this as speech-quality validation.
 
 Existing frontend integration:
 
 - `stories/<id>/narration.js` exports `{url:null}` until real narration is installed; src/narration.js re-exports the selected story.
-- `src/narration-player.js` loads/validates timeline and master hash, uses a Web Audio clock, handles pause/resume and cancellation.
-- `src/main.js` exposes `window.bookDemo.ready`, `setExportTimeline(timeline)`, `renderAt(seconds)` in `?export=1` mode. Frames are computed directly from time; seeking backward then forward gives the same picture. Preserve this contract if adapting the scaffold.
-- `index.html` / `src/style.css` provide conditional status, AI disclosure and clean export layout.
+- `renderer/src/narration-player.js` loads/validates timeline and master hash, uses a Web Audio clock, handles pause/resume and cancellation.
+- `renderer/src/book.js` exposes `window.bookDemo.ready`, `setExportTimeline(timeline)`, `renderAt(seconds)` in `?export=1` mode. Frames are computed directly from time; seeking backward then forward gives the same picture. Preserve this contract if adapting the scaffold.
+- `renderer/src/shell.js` / `renderer/src/style.css` provide conditional status, AI disclosure and clean export layout.
 
 `narrate.mjs` and `prepare_narration.mjs` write into the story folder and read its `content.js`; the exporter and QA scripts mount the skill's own reader, so they need nothing from a host app. What they *do* assume is the `window.bookDemo` contract, which `renderer/src/book.js` provides — a host with its own renderer must supply it. Copying the CLIs alone does not add narration to an arbitrary site.
 
@@ -73,48 +73,29 @@ npm run narrate -- --name red-audio-v1                 # generate every page; pr
 npm run narrate -- --name red-audio-v2 --install --video
 ```
 
-**Against a local MOSS-TTS server (offline, Apple Silicon):** the `moss-tts` project runs the same contract, so only the endpoint changes. It lives outside this project (a sibling directory by default) and owns its own ~9 GB of models and its own `.env.local`.
+For a separately managed local endpoint, set `OPENAI_TTS_BASE_URL`, `OPENAI_TTS_API_KEY` and a supported `OPENAI_TTS_VOICE`. Do not install or modify its inference implementation from this skill.
+
+For a standalone project, use the scripts directly:
 
 ```bash
-cd ../moss-tts
-uv sync                          # once: creates .venv with mlx-audio + fastapi
-.venv/bin/python server.py       # starts 127.0.0.1:8123 and preloads the model
+node "$SKILL/scripts/narrate.mjs" --project "$PROJECT" --story <id> --plan
+node "$SKILL/scripts/narrate.mjs" --project "$PROJECT" --story <id> --check
+node "$SKILL/scripts/narrate.mjs" --project "$PROJECT" --story <id> --name audio-v1
 ```
 
-It keeps the model resident, so the ~50 s load is paid once at startup instead of once per run.
+`narrate.mjs` wraps the builder/exporter. Flags include `--project`, `--story`, `--name`, `--voice`, `--speed`, `--model`, `--disclosure`, `--plan`, `--check`, `--install`, `--video`, `--output <mp4>`, `--refresh-page <id>` (repeatable) and `--allow-fallback-voice`. `--plan` runs before preflight and makes no network calls or credential checks. It cannot be combined with `--check`, `--install` or `--video`.
 
-then in **this** project's `.env.local`:
+`--check` inspects credentials, ffmpeg and optional endpoint metadata. A missing `/models` route (404/405/501) is a warning, not proof that `/audio/speech` fails. Authentication errors, unreachable hosts and other server errors remain failures. Optional `/voices` metadata can report a fingerprint or an explicit voice fallback; an explicitly reported fallback still stops generation unless accepted with `--allow-fallback-voice`. Absence of metadata is not a voice-quality check. Preflight never claims speech synthesis or spoken content has been verified.
+
+For a single-page retake, use a new version name and bypass only that page’s local cache:
 
 ```bash
-OPENAI_TTS_BASE_URL=http://127.0.0.1:8123/v1
-OPENAI_TTS_API_KEY=local                               # the local server accepts any token
-OPENAI_TTS_VOICE=narrator                              # must name a preset in that server's voices.json
+node "$SKILL/scripts/narrate.mjs" --project "$PROJECT" --story <id> --name audio-v2 --refresh-page page-02
 ```
 
-`narrate.mjs` wraps `prepare_narration.mjs` and `export_video.mjs`; it adds an endpoint check, a readable clip summary and a default version name (`audio-YYYYMMDD-HHMM`) when `--name` is omitted. Flags: `--name`, `--voice`, `--speed`, `--model`, `--seed`, `--page-seed`, `--disclosure`, `--plan`, `--check`, `--install`, `--video`, `--output <mp4>`, `--allow-fallback-voice`. CLI overrides set the same `OPENAI_TTS_*` variables `.env.local` uses, so either place works. Anything endpoint-specific — reference audio, language, sampling — is set in the server's `voices.json`, not here; `--seed`/`--page-seed` are the one exception, and they exist for re-recording (see below).
+This sends the standard speech request again without extra API fields, leaving the other cached clips and earlier audio versions intact. Invalid page IDs fail before generation. Each explicit refresh makes another paid request even when its text is unchanged. A deterministic endpoint may return identical audio; consult its supported controls rather than repeatedly retrying. Existing `--seed <n>` and repeatable `--page-seed <id>=<n>` are optional extensions for endpoints known to support a request-level seed, not portable requirements. They are never sent by default.
 
-`--check` reports the endpoint, credential, models, the selected voice's fingerprint **and whether the server is actually using that voice's reference audio**. A server that reports `ref_audio_ok: false` has silently fallen back to its base voice, so the run stops with an error rather than spending money on clips that are not the voice that was asked for; `--allow-fallback-voice` proceeds anyway. That is the difference between "the endpoint works" and "the endpoint will produce what you asked for".
-
-Voice: which voice you get is the endpoint's business. Against MOSS-TTS an unlisted `voice` name is an error listing the valid presets; its shipped `default` preset needs no reference audio. To clone a narrator, put 5–15 s of clean single-speaker speech at any sample rate in that project's `voices/` directory and reference it from a preset — keep reference WAVs there or in your own config, never inside a story folder, and do not use a real person's voice without their permission.
-
-Regenerating one page — the case where one clip misreads a name. Use a **request-level seed**, which the builder puts into that page's request body:
-
-```bash
-node $SKILL/scripts/narrate.mjs --project "$PROJECT" --name v2 --page-seed page-14=7
-```
-
-Because the body is what the cache hashes, only that page's cache key changes: it is re-synthesized and the other clips are reused from `audio/.cache/`, so one page costs one generation. `--seed <n>` does the same for every page at once (a new take on the whole book). A page id is the id used in `timeline.json` — `cover`, `page-01` …, `back`; a name that is not in the book is rejected rather than silently doing nothing.
-
-The other two routes do **not** work, which is why this flag exists:
-
-- **Deleting a cache file** does not force a new take. The cache file is named `<request-hash>[.<preset-fingerprint>].wav`, and deleting it simply re-runs a deterministic server into the same bytes — the same text, voice and seed give the same audio. Delete it only to recover from a corrupt file.
-- **Changing the preset's `seed` in the server's `voices.json`** invalidates **every** clip, not one: the preset feeds the fingerprint, which is part of every cache filename.
-
-Neither route needs a new `--name` to save money, incidentally — a new name is free, because a name that does not exist yet builds from the same content-addressed cache.
-
-Fallback order when generation is unavailable: `--check` reports exactly what is missing (unreachable endpoint, rejected credential, no ffmpeg, or a server that is still loading). Do not start or download a local model server on the user's behalf without asking; the models are large. Otherwise validate the pipeline with labeled test tones (`narration:fixture`) and say plainly that no speech was produced.
-
-Generation speed on an M-series laptop with the 8-bit model: first load ~50 s when the server starts, then roughly 1.5× real time per clip; a six-page book takes about a minute.
+To clone a voice, use the endpoint’s own supported setup and obtain the speaker’s permission. Keep inference configuration and model assets outside story folders. If the service is unavailable, prepare a plan or use labeled fixture tones; do not silently switch services or voices.
 
 Planning writes `stories/<id>/audio/requests.json` with exact inputs and parameters, without calling any endpoint. Credentials are not needed for planning or local fixtures. The default app remains a clearly labeled silent flip demo until real narration is installed. If the user says to reserve the interface, stop at planning.
 
@@ -125,11 +106,11 @@ npm run narration:plan                                       # plan only; no net
 npm run narration:generate -- --name red-audio-v1 --install   # generate through the configured endpoint
 ```
 
-Output: `stories/<id>/audio/<name>/`, containing per-page WAVs, `master.wav`, `timeline.json`, and `requests.json` (provider, the resolved base endpoint, exact per-page request bodies, hashes, the preset fingerprint, the seeds used and the disclosure). Each clip is 48 kHz mono PCM16; a response that already is that format is used as-is, otherwise it is normalized through ffmpeg. **Clips are level-matched before assembly**: each one is measured over its speech (a −50 dBFS gate, so silence is not counted as content) and scaled toward −20 dBFS RMS, never past a −1 dBFS peak ceiling and never by more than ±12 dB — a page 6 dB under its neighbours is a property of generating eighteen clips independently, not bad luck, and it lands in the master otherwise. The per-clip gain is in `timeline.clips[].gainDb` and `timeline.loudness`; `--no-normalize` (or `OPENAI_TTS_NORMALIZE=0`) turns the pass off. Durations use actual PCM sample counts, not word-count estimates or guessed speaking speed. Cache keys include the exact input and every generation parameter in the body (model, voice, speed, instructions, and any `--seed`/`--page-seed`) plus, when the endpoint offers `GET /v1/voices`, a fingerprint covering the voice's effective tuning and reference-audio bytes — so editing a preset invalidates the cache even though the body is unchanged. The cache stores what the endpoint returned, *before* level matching, so retargeting the loudness never invalidates it. Successful clips survive a later failure; rerun explicitly to reuse them. There are no automatic paid retries. A new output name prevents overwriting finished work — and is free when the clips have not changed, since the cache is content-addressed. `timeline.tts` records `provider: "openai-compatible"`, the base `endpoint`, model, voice, speed, instructions, the seeds and the preset fingerprint — never a credential.
+Output: `stories/<id>/audio/<name>/`, containing per-page WAVs, `master.wav`, `timeline.json`, and `requests.json` (provider, the resolved base endpoint, exact per-page request bodies, hashes, the preset fingerprint, the seeds used and the disclosure). Each clip is 48 kHz mono PCM16; a response that already is that format is used as-is, otherwise it is normalized through ffmpeg. **Clips are level-matched before assembly**: each one is measured over its speech (a −50 dBFS gate, so silence is not counted as content) and scaled toward −20 dBFS RMS, never past a −1 dBFS peak ceiling and never by more than ±12 dB — a page 6 dB under its neighbours is a property of generating eighteen clips independently, not bad luck, and it lands in the master otherwise. The per-clip gain is in `timeline.clips[].gainDb` and `timeline.loudness`; `--no-normalize` (or `OPENAI_TTS_NORMALIZE=0`) turns the pass off. Durations use actual PCM sample counts, not word-count estimates or guessed speaking speed. Version-2 cache keys include the normalized speech endpoint, page ID (so repeated text can have independent retakes), the exact input and every generation parameter in the body (model, voice, speed, instructions, and any `--seed`/`--page-seed`) plus, when the endpoint offers `GET /v1/voices`, a fingerprint covering the voice's effective tuning and reference-audio bytes — so changing a reported fingerprint invalidates the cache even though the body is unchanged. Without fingerprint support, use explicit refresh when server-side voice settings change. Legacy cache files omit endpoint identity and are preserved but not reused; the first generation with v2 creates fresh entries. The cache stores what the endpoint returned, *before* level matching, so retargeting the loudness never invalidates it. Successful clips survive a later failure; rerun explicitly to reuse them. There are no automatic paid retries. A new output name prevents overwriting finished work — and is free when the clips have not changed, since the cache is content-addressed. `timeline.tts` records `provider: "openai-compatible"`, the base `endpoint`, model, voice, speed, instructions, the seeds and the preset fingerprint — never a credential.
 
 `--install` updates `stories/<id>/narration.js`, saving its prior configuration in backups/. Audio stays in audio/<version>/ and is served by the Vite plugin; no duplicate public/ copy is created. Generated story assets remain together for management; only caches, temporary files and .env files are gitignored. Listen to every generated clip before delivery.
 
-Missing credential, failed requests, changed story, missing WAVs, invalid durations or hash mismatches are errors. Do not silently fill missing speech with silence or call an incomplete narration ready. Changing text requires rebuilding audio. Changing page image URLs also invalidates the content fingerprint; rebuilding reuses unchanged speech cache entries. Replacing image bytes at an unchanged URL does not invalidate narration because the words/page order are unchanged; the next export loads the current artwork, so visually recheck it. Changing a server-side voice preset does invalidate the cache, via the fingerprint.
+Missing credential, failed requests, changed story, missing WAVs, invalid durations or hash mismatches are errors. Do not silently fill missing speech with silence or call an incomplete narration ready. Changing text requires rebuilding audio. Changing page image URLs also invalidates the content fingerprint; rebuilding reuses unchanged speech cache entries. Replacing image bytes at an unchanged URL does not invalidate narration because the words/page order are unchanged; the next export loads the current artwork; use the sampled thumbnail workflow if a visual check is needed. Server-side voice changes invalidate the cache only when the endpoint reports a changed fingerprint; otherwise request an explicit refresh.
 
 ## Timing and playback
 
@@ -153,6 +134,15 @@ Exporter verifies that the timeline matches current content and master samples/h
 
 Render time can exceed video length, especially on CPU/software WebGL. Temporary files and the local server are cleaned on completion/failure. Cancellation or crashes can leave a `.render-*` folder; inspect before deleting only that run’s temporary assets.
 
+### Finish with publishing materials
+
+For a normal MP4 request, continue with [publishing.md](publishing.md): compose horizontal and
+vertical covers and write platform-specific titles, tags and descriptions. Prepare story-local
+copy and pass `--publish-copy <file>` to this exporter (also supported by `narrate --video`), or
+run `publish_bundle.mjs` after export. New export reports include the video SHA-256. A failed
+publishing step preserves the MP4 and can be retried separately. Skip this step for test tones
+or when the user explicitly excludes publishing materials; no upload is performed.
+
 ## Offline verification without TTS
 
 ```bash
@@ -168,7 +158,7 @@ npm run test:e2e
 
 Fixtures are short deterministic tones, **not spoken English**. The fixture builder refuses `--install`, exporter requires `--allow-test-audio`, and the video visibly says “Timing test · tones, not narration”. Do not provide it as a narrated story. Keep the live reader’s narration unconfigured during such tests. Live API testing remains a separate, explicitly configured step.
 
-Look at the book, and listen to the narration against it, before exporting:
+Use a sampled thumbnail view of the book and listen to the narration before exporting; do not load every illustration or full-size screenshot into agent context:
 
 ```bash
 node $SKILL/scripts/static-server.mjs --project "$PROJECT" --story <id>
@@ -185,10 +175,10 @@ Reader QA in a real browser:
 node $SKILL/scripts/qa_browser.mjs --project "$PROJECT"
 ```
 
-It loads the running dev server at 1366×768 and 844×390, waits for `bookDemo.ready`, fails on any
+It starts the bundled reader (or uses an explicit `--url`) at 1366×768 and 844×390, waits for `bookDemo.ready`, fails on any
 failed request or HTTP 4xx/5xx, checks that every `<img>` really decoded, captures one screenshot
 per sheet into the story's `qa/screenshots/`, and writes `qa/browser-check.json`. The story id and
-sheet count come from the project's `content.js`, never from a hardcoded value. If the page
+sheet count come from the selected story’s `content.js`, never from a hardcoded value. If the page
 exposes no `window.bookDemo`, it says so rather than passing silently.
 
 QA must cover: left/right order, no speech during turns, pause/resume (including mid-turn), manual cancellation, stale content rejection, missing credentials without network calls, actual image loading, deterministic re-rendering, MP4 codec/frame count, audio/video duration and audible timing. Review 1366×768 and 844×390. Record which endpoint produced the speech — the official OpenAI API, a relay, a local MOSS-TTS server reached through the OpenAI-compatible API, mocked API audio, or fixture tones — and never conflate them. The provenance is in `timeline.tts.endpoint`.
