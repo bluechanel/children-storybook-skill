@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { validateCopy, readPublishingCopy, publishBundle, sha256, COVER_SIZES } from '../skills/children-storybook/scripts/publish_bundle.mjs';
+import { validateCopy, readPublishingCopy, publishBundle, coverHtml, sha256, COVER_SIZES } from '../skills/children-storybook/scripts/publish_bundle.mjs';
 import { storyPaths } from '../skills/children-storybook/scripts/story-paths.mjs';
 import { exportVideo } from '../skills/children-storybook/scripts/export_video.mjs';
 import { pageSequence, makeTimeline } from '../skills/children-storybook/scripts/media-core.mjs';
@@ -57,6 +57,18 @@ test('publishing copy preserves exact Unicode and rejects missing platforms and 
   delete input.platforms.bilibili;
   input.platforms.douyin.tags = ['英语', '绘本', '故事'];
   assert.throws(() => validateCopy(input), /Missing platforms.bilibili/);
+});
+
+test('coverHtml reapplies fitted font sizes without a document round-trip', () => {
+  const art = 'data:image/png;base64,AAAA';
+  const fitted = coverHtml(sampleCopy(), 'The Tortoise and the Hare', art, 'portrait', [28, 70, 34, 29]);
+  assert.match(fitted, /class="label" data-fit style="font-size:28px"/);
+  assert.match(fitted, /<h1 data-fit style="font-size:70px"/);
+  assert.match(fitted, /class="subtitle" data-fit style="font-size:34px"/);
+  assert.match(fitted, /class="title" data-fit style="font-size:29px"/);
+  const unfitted = coverHtml(sampleCopy(), 'The Tortoise and the Hare', art, 'portrait');
+  assert.doesNotMatch(unfitted, /data-fit style=/);
+  assert.match(unfitted, /data-fit>/);
 });
 
 test('publishing sources reject traversal and symlinks outside the story', async t => {

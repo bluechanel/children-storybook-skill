@@ -25,6 +25,16 @@ version it is.
 Bumping `VERSION` and adding the entry here are part of the change, not a follow-up. The
 `tests/script-entry.test.mjs` suite fails if `VERSION` and the newest heading disagree.
 
+## [1.3.1] — 2026-10-02
+
+- Fix `publish_bundle.mjs` reporting a false “H1 clipped” failure on every cover when the CJK font's
+  ink extends past a tight line box (PingFang SC does). The fit loop and clip check now allow a
+  quarter-em of glyph-box slack, so a real overflowed line is still caught but normal font metrics
+  are not.
+- Stop pulling the composed document back through `Runtime.evaluate` to persist fitted sizes. With a
+  multi-megabyte embedded cover that `returnByValue` round-trip exceeded the 60 s deadline; fitted
+  sizes are now returned as numbers and reapplied by `coverHtml`, which is faster and bounded.
+
 ## [1.3.0] — 2026-09-30
 
 - Complete the normal MP4 skill workflow with a local publishing kit: 9:16, 16:9 and 3:4 covers, plus distinct titles, tags and short descriptions for 抖音、小红书 and B 站.

@@ -85,9 +85,13 @@ export async function readPublishingCopy(story, copyPath) {
   return { copy, file, art, mime, title: text(manifest.title, 'manifest.title', 180) };
 }
 
-export function coverHtml(copy, title, imageUrl, shape) {
+export function coverHtml(copy, title, imageUrl, shape, fits = []) {
   const { width, height } = COVER_SIZES[shape];
   const wide = shape === 'landscape';
+  // Fitted sizes are reapplied here instead of round-tripping the whole document out of the page.
+  // An embedded data-URI cover art can be several megabytes, and returning that string through
+  // Runtime.evaluate with returnByValue is pathologically slow (it can exceed the 60s deadline).
+  const fit = index => (Number.isFinite(fits[index]) ? ` style="font-size:${fits[index]}px"` : '');
   return `<!doctype html><html lang="zh-CN"><meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'">
 <style>
@@ -102,7 +106,7 @@ h1{font-size:${wide ? 92 : 90}px;line-height:1.14;letter-spacing:-1px;margin:0;w
 .art{min-height:0;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:28px}
 img{display:block;width:100%;min-height:0;flex:1;object-fit:contain;border-radius:28px}
 .title{font-family:Georgia,serif;font-size:${wide ? 32 : 29}px;line-height:1.25;text-align:center;margin:0;max-height:90px;overflow-wrap:anywhere}
-</style><main><section class="copy"><div class="rule"></div><p class="label" data-fit>${esc(copy.cover.label)}</p><h1 data-fit>${esc(copy.cover.headline)}</h1><p class="subtitle" data-fit>${esc(copy.cover.subtitle)}</p></section><section class="art"><img src="${esc(imageUrl)}" alt=""><p class="title" data-fit>${esc(title)}</p></section></main></html>`;
+</style><main><section class="copy"><div class="rule"></div><p class="label" data-fit${fit(0)}>${esc(copy.cover.label)}</p><h1 data-fit${fit(1)}>${esc(copy.cover.headline)}</h1><p class="subtitle" data-fit${fit(2)}>${esc(copy.cover.subtitle)}</p></section><section class="art"><img src="${esc(imageUrl)}" alt=""><p class="title" data-fit${fit(3)}>${esc(title)}</p></section></main></html>`;
 }
 
 function markdown(bundle) {
@@ -157,21 +161,27 @@ export async function publishBundle(options) {
       await page.viewport(size.width, size.height);
       await page.goto(pathToFileURL(html).href);
       await page.evaluate('Promise.all([document.fonts.ready, ...Array.from(document.images, i => i.decode())]).then(()=>true)', { awaitPromise: true });
-      checks[shape] = await page.evaluate(`(() => {
+      const measured = await page.evaluate(`(() => {
         const nodes = [...document.querySelectorAll('[data-fit]')];
+        // A font's ink can extend past its line box (PingFang SC at a tight line-height does), which
+        // inflates scrollHeight without any layout overflow. Allow a fraction of the font size so that
+        // quirk is not mistaken for a clipped line, while a real extra line (at least 1em) is still caught.
+        const slack = el => Math.max(1, parseFloat(getComputedStyle(el).fontSize) * 0.25);
         for (const el of nodes) {
           let size = parseFloat(getComputedStyle(el).fontSize);
-          while ((el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1) && size > 24) el.style.fontSize = (--size) + 'px';
+          while ((el.scrollHeight > el.clientHeight + slack(el) || el.scrollWidth > el.clientWidth + 1) && size > 24) el.style.fontSize = (--size) + 'px';
         }
         const clipped = nodes.filter(el => {
           const r = el.getBoundingClientRect(), p = el.parentElement.getBoundingClientRect();
-          return el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1 || r.top < p.top - 1 || r.bottom > p.bottom + 1 || r.left < 0 || r.right > innerWidth;
+          return el.scrollHeight > el.clientHeight + slack(el) || el.scrollWidth > el.clientWidth + 1 || r.top < p.top - 1 || r.bottom > p.bottom + 1 || r.left < 0 || r.right > innerWidth;
         }).map(el => el.className || el.tagName);
-        return { clipped, decoded: [...document.images].every(i => i.naturalWidth > 0) };
+        return { clipped, decoded: [...document.images].every(i => i.naturalWidth > 0), fits: nodes.map(el => parseFloat(getComputedStyle(el).fontSize)) };
       })()`);
-      if (checks[shape].clipped.length || !checks[shape].decoded || page.errors.length) throw new Error(`Cover layout failed (${shape}): ${JSON.stringify(checks[shape])}. Shorten copy or correct artwork.`);
-      // Persist any fitted font sizes so opening the saved layout reproduces the PNG.
-      await fs.writeFile(html, '<!doctype html>' + await page.evaluate('document.documentElement.outerHTML'));
+      checks[shape] = { clipped: measured.clipped, decoded: measured.decoded };
+      if (measured.clipped.length || !measured.decoded || page.errors.length) throw new Error(`Cover layout failed (${shape}): ${JSON.stringify(checks[shape])}. Shorten copy or correct artwork.`);
+      // Persist any fitted font sizes so opening the saved layout reproduces the PNG, without
+      // pulling the embedded artwork back through Runtime.evaluate.
+      await fs.writeFile(html, coverHtml(source.copy, source.title, imageUrl, shape, measured.fits));
       await page.settle();
       const png = await page.screenshot(size.width, size.height);
       if (JSON.stringify(pngSize(png)) !== JSON.stringify({ width: size.width, height: size.height })) throw new Error(`Wrong cover dimensions: ${shape}.`);
